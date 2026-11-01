@@ -1,0 +1,1 @@
+All-in-one file tool: generates test files, packs/unpacks ZIP, TAR & custom encrypted PFA archives, computes 11 checksum algorithms and verifies hashes — hardened against Zip Slip, with GUI and CLI in one single Python file.
