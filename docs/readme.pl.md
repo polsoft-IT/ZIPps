@@ -73,7 +73,7 @@ python -m unittest discover -s tests -v
 ## 🗂️ Dokumentacja
 
 - [Opis kompilatora/narzędzia (EN, ≤350 znaków)](opis.txt)
-- Zrzuty ekranu: `docs/screenshot.png`, `docs/app.png`, `docs/file1.png`, `docs/file2.png`
+- Zrzuty ekranu: `screenshot.png`, `app.png`, `file2.png`
 
 ---
 
