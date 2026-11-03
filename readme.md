@@ -1,8 +1,8 @@
 <div align="center">
 
 <p align="center">
-  <a href="readme.en.md">🇬🇧 English</a> ·
-  <a href="readme.pl.md">🇵🇱 Polski</a>
+  <a href="docs/readme.en.md">🇬🇧 English</a> ·
+  <a href="docs/readme.pl.md">🇵🇱 Polski</a>
 </p>
 
 <h1>📦 ZIPps — Pro File Packer Enterprise</h1>
@@ -72,8 +72,8 @@ python -m unittest discover -s tests -v
 
 ## 🗂️ Documentation
 
-- [Tool description (EN, ≤350 characters)](opis.txt)
-- Screenshots: `docs/screenshot.png`, `docs/app.png`, `docs/file1.png`, `docs/file2.png`
+- [Tool description (EN, ≤350 characters)](docs/opis.txt)
+- Screenshots: `docs/screenshot.png`, `docs/app.png`, `docs/file2.png`
 
 ---
 
