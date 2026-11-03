@@ -151,6 +151,44 @@ class ArchiveRoundTripTests(TempDirTestCase):
     def test_detect_format_from_extension(self):
         self.assertEqual("zip", ZIPps.detect_format("data.zip"))
         self.assertEqual("targz", ZIPps.detect_format("data.tar.gz"))
+        self.assertEqual("7z", ZIPps.detect_format("data.7z"))
+
+    def test_7z_pack_then_list_and_unpack(self):
+        if not ZIPps.PY7ZR_AVAILABLE:
+            self.skipTest("py7zr not available")
+        files = self._make_inputs()
+        archive = os.path.join(self.tmp, "out.7z")
+
+        packer = ZIPps.PackerCore(ZIPps.Empty())
+        result = packer.pack(files, archive, "7z")
+        self.assertTrue(os.path.isfile(archive))
+        self.assertEqual(2, result.entries)
+
+        unpacker = ZIPps.UnpackerCore(ZIPps.Empty())
+        entries, fmt = unpacker.entries(archive)
+        self.assertEqual("7z", fmt)
+        self.assertEqual(2, len(entries))
+        self.assertEqual(
+            {"a.txt", "b.txt"},
+            {os.path.basename(e["name"]) for e in entries},
+        )
+
+        dest = os.path.join(self.tmp, "restored")
+        extract = unpacker.unpack_auto(archive, dest)
+        self.assertEqual(2, extract.extracted)
+        with open(os.path.join(dest, "a.txt"), "rb") as fh:
+            self.assertEqual(b"alpha\n", fh.read())
+
+    def test_7z_archive_passes_integrity_test(self):
+        if not ZIPps.PY7ZR_AVAILABLE:
+            self.skipTest("py7zr not available")
+        files = self._make_inputs()
+        archive = os.path.join(self.tmp, "check.7z")
+        ZIPps.PackerCore(ZIPps.Empty()).pack(files, archive, "7z")
+
+        ok, problem, count = ZIPps.UnpackerCore(ZIPps.Empty()).test_archive(archive)
+        self.assertTrue(ok, msg=problem)
+        self.assertEqual(2, count)
 
 
 class CliDispatchTests(TempDirTestCase):
