@@ -1,6 +1,6 @@
 <div align="center">
 
-<img src="../ico.ico" width="112" alt="Pro File Packer Enterprise icon" />
+<img src="https://raw.githubusercontent.com/polsoft-IT/ZIPps/main/docs/ico.ico" width="112" alt="Pro File Packer Enterprise icon" />
 
 # Pro File Packer Enterprise
 
@@ -20,14 +20,14 @@ One app for file generation, archive packing/unpacking, AES-256 encryption and 1
 
 <table align="center">
   <tr>
-    <td align="center"><img src="pic/01.file_generator.png" width="260" alt="File generator" /><br /><sub>File generator</sub></td>
-    <td align="center"><img src="pic/02.pack_file.png" width="260" alt="Pack files" /><br /><sub>Pack</sub></td>
-    <td align="center"><img src="pic/03.unpack.png" width="260" alt="Unpack archive" /><br /><sub>Unpack</sub></td>
+    <td align="center"><img src="https://raw.githubusercontent.com/polsoft-IT/ZIPps/main/docs/app/pic/01.file_generator.png" width="260" alt="File generator" /><br /><sub>File generator</sub></td>
+    <td align="center"><img src="https://raw.githubusercontent.com/polsoft-IT/ZIPps/main/docs/app/pic/02.pack_file.png" width="260" alt="Pack files" /><br /><sub>Pack</sub></td>
+    <td align="center"><img src="https://raw.githubusercontent.com/polsoft-IT/ZIPps/main/docs/app/pic/03.unpack.png" width="260" alt="Unpack archive" /><br /><sub>Unpack</sub></td>
   </tr>
   <tr>
-    <td align="center"><img src="pic/04.security.png" width="260" alt="Security and checksums" /><br /><sub>Security</sub></td>
-    <td align="center"><img src="pic/05.settings.png" width="260" alt="Settings" /><br /><sub>Settings</sub></td>
-    <td align="center"><img src="pic/06.log.png" width="260" alt="Log" /><br /><sub>Log</sub></td>
+    <td align="center"><img src="https://raw.githubusercontent.com/polsoft-IT/ZIPps/main/docs/app/pic/04.security.png" width="260" alt="Security and checksums" /><br /><sub>Security</sub></td>
+    <td align="center"><img src="https://raw.githubusercontent.com/polsoft-IT/ZIPps/main/docs/app/pic/05.settings.png" width="260" alt="Settings" /><br /><sub>Settings</sub></td>
+    <td align="center"><img src="https://raw.githubusercontent.com/polsoft-IT/ZIPps/main/docs/app/pic/06.log.png" width="260" alt="Log" /><br /><sub>Log</sub></td>
   </tr>
 </table>
 
@@ -68,11 +68,11 @@ It offers a modern graphical interface for everyday use and a full command-line 
 <div align="center">
 
 <p>
-  <img src="../screenshot.png" alt="Main window" width="380" />
-  <img src="../app.png" alt="Pack and unpack" width="380" />
+  <img src="https://raw.githubusercontent.com/polsoft-IT/ZIPps/main/docs/screenshot.png" alt="Main window" width="380" />
+  <img src="https://raw.githubusercontent.com/polsoft-IT/ZIPps/main/docs/app.png" alt="Pack and unpack" width="380" />
 </p>
 <p>
-  <img src="../file2.png" alt="File generator" width="380" />
+  <img src="https://raw.githubusercontent.com/polsoft-IT/ZIPps/main/docs/file2.png" alt="File generator" width="380" />
 </p>
 
 </div>
