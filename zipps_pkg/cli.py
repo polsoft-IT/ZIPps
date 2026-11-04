@@ -17,6 +17,12 @@ from zipps_pkg.packer import PackerCore
 from zipps_pkg.unpacker import UnpackerCore
 from zipps_pkg.security import SecurityCore, file_info, hash_file
 
+# Import GUI function if available
+try:
+    from zipps_pkg.gui import run_gui
+except ImportError:
+    run_gui = None
+
 # =====================================================================
 #  Interfejs wiersza polecen (CLI)
 # =====================================================================
@@ -53,7 +59,8 @@ def build_cli_parser() -> argparse.ArgumentParser:
     p_pack.add_argument("paths", nargs="+", help="pliki i/lub foldery")
     p_pack.add_argument("-o", "--output", required=True, help="sciezka archiwum")
     p_pack.add_argument("-f", "--format", default=None,
-                        choices=["zip", "tar", "targz", "tarbz2", "tarxz", "gz", "bz2", "xz", "pfa"],
+                        choices=["zip", "tar", "targz", "tarbz2", "tarxz", "tarzst", "tarlz4", "tarbr",
+                                 "gz", "bz2", "xz", "zst", "lz4", "br", "ar", "7z", "pfa"],
                         help="format (domyslnie z rozszerzenia)")
     p_pack.add_argument("--password", default=None, help="haslo (ZIP AES-256 / PFA)")
     p_pack.add_argument("--level", type=int, default=6, help="poziom kompresji 0-9")
@@ -277,6 +284,9 @@ def cli_main(argv: Optional[Sequence[str]] = None) -> int:
     parser = build_cli_parser()
     args = parser.parse_args(argv)
     if args.command in (None, "gui"):
+        if run_gui is None:
+            print("GUI is not available - PySide6 is not installed.")
+            return 1
         return run_gui(getattr(args, "paths", []) or [])
 
     handler = CLI_COMMANDS.get(args.command)
