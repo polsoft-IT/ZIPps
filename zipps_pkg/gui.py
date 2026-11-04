@@ -6,6 +6,10 @@ import time
 import subprocess
 import traceback
 
+# Wyłącz skalowanie DPI przed importem Qt (Windows problem)
+os.environ["QT_AUTO_SCREEN_SCALE_FACTOR"] = "0"
+os.environ["QT_ENABLE_HIGHDPI_SCALING"] = "0"
+
 from zipps_pkg.version import __version__, __app_name__
 import json
 import math
@@ -43,10 +47,10 @@ try:
         QTextBrowser, QTableWidget, QTableWidgetItem, QFrame
     )
     from PySide6.QtCore import (Qt, Signal, QObject, QThread, QEvent, QTimer, QSize,
-                                qVersion)
+                                qVersion, QPointF)
     from PySide6.QtGui import (
         QDragEnterEvent, QDropEvent, QIcon, QPixmap, QPainter, QColor, QPen, QAction,
-        QKeySequence, QShortcut, QActionGroup
+        QKeySequence, QShortcut, QActionGroup, QPainterPath, QBrush
     )
 except ImportError as _qt_error:  # pragma: no cover - zalezy od srodowiska
     QT_AVAILABLE = False
@@ -69,7 +73,10 @@ def load_stylesheet() -> str:
         with open(QSS_PATH, "r", encoding="utf-8") as fh:
             return fh.read()
     except OSError as ex:
-        Logger().error("Nie udalo sie wczytac %s: %s" % (QSS_PATH, ex))
+        try:
+            Logger().error("Nie udalo sie wczytac %s: %s" % (QSS_PATH, ex))
+        except:
+            pass
         return ""
 
 
@@ -263,54 +270,146 @@ if QT_AVAILABLE:
 
 
   def build_icon(kind: str, color: str | None = None) -> QIcon:
-    """Rysuje prosta ikone wektorowo (bez zewnetrznych plikow graficznych)."""
+    """Rysuje nowoczesna ikone wektorowo z gradientami i cieniami."""
     color = color or _ICON_COLORS.get(kind, "#75beff")
     pix = QPixmap(32, 32)
     pix.fill(Qt.GlobalColor.transparent)
     painter = QPainter(pix)
     painter.setRenderHint(QPainter.RenderHint.Antialiasing, True)
+
+    # Gradient dla tła
+    bg_color = QColor(color)
+    bg_color.setAlpha(40)
+
     pen = QPen(QColor(color))
-    pen.setWidth(3)
+    pen.setWidthF(2.5)
     pen.setCapStyle(Qt.PenCapStyle.RoundCap)
     pen.setJoinStyle(Qt.PenJoinStyle.RoundJoin)
-    painter.setPen(pen)
+
     if kind == "add":
-        painter.drawLine(16, 6, 16, 26)
-        painter.drawLine(6, 16, 26, 16)
+        # Tło z gradientem
+        painter.setBrush(QBrush(bg_color))
+        painter.setPen(Qt.PenStyle.NoPen)
+        painter.drawEllipse(4, 4, 24, 24)
+        # Plus
+        painter.setPen(pen)
+        painter.drawLine(16, 8, 16, 24)
+        painter.drawLine(8, 16, 24, 16)
+
     elif kind == "remove":
-        painter.drawLine(7, 7, 25, 25)
-        painter.drawLine(25, 7, 7, 25)
-    elif kind in ("folder", "archive"):
-        if kind == "folder":
-            painter.drawRoundedRect(4, 10, 24, 16, 3, 3)
-            painter.drawLine(4, 10, 13, 10)
-            painter.drawLine(13, 10, 16, 7)
-        else:
-            painter.drawRoundedRect(6, 4, 20, 24, 3, 3)
-            painter.drawLine(9, 4, 9, 28)
-            painter.drawLine(9, 12, 26, 12)
+        painter.setBrush(QBrush(bg_color))
+        painter.setPen(Qt.PenStyle.NoPen)
+        painter.drawEllipse(4, 4, 24, 24)
+        painter.setPen(pen)
+        painter.drawLine(9, 9, 23, 23)
+        painter.drawLine(23, 9, 9, 23)
+
+    elif kind == "folder":
+        # Folder z efektem 3D
+        painter.setBrush(QBrush(QColor("#dcb67a")))
+        painter.setPen(QPen(QColor("#b8956a"), 2))
+        path = QPainterPath()
+        path.moveTo(6, 10)
+        path.lineTo(14, 10)
+        path.lineTo(16, 7)
+        path.lineTo(26, 7)
+        path.lineTo(26, 24)
+        path.lineTo(6, 24)
+        path.closeSubpath()
+        painter.drawPath(path)
+        # Cieniowanie
+        painter.setPen(QPen(QColor("#a67c52"), 1))
+        painter.drawLine(6, 24, 26, 24)
+
+    elif kind == "archive":
+        # Archiwum z efektem ZIP
+        painter.setBrush(QBrush(QColor("#c586c0")))
+        painter.setPen(QPen(QColor("#a85dc4"), 2))
+        painter.drawRoundedRect(6, 4, 20, 24, 3, 3)
+        # Linia zameczka
+        painter.setPen(QPen(QColor("#ffffff"), 2))
+        painter.drawLine(9, 4, 9, 28)
+        painter.drawLine(9, 12, 26, 12)
+        # Kropka zameczka
+        painter.setBrush(QBrush(QColor("#ffffff")))
+        painter.setPen(Qt.PenStyle.NoPen)
+        painter.drawEllipse(11, 8, 3, 3)
+
     elif kind == "file":
-        painter.drawRoundedRect(8, 4, 16, 24, 2, 2)
-        painter.drawLine(12, 12, 20, 12)
-        painter.drawLine(12, 17, 20, 17)
-        painter.drawLine(12, 22, 17, 22)
+        # Dokument z zaokrąglonym rogiem
+        painter.setBrush(QBrush(QColor("#75beff")))
+        painter.setPen(QPen(QColor("#5ba3e8"), 2))
+        path = QPainterPath()
+        path.moveTo(10, 4)
+        path.lineTo(22, 4)
+        path.lineTo(26, 8)
+        path.lineTo(26, 26)
+        path.lineTo(10, 26)
+        path.closeSubpath()
+        painter.drawPath(path)
+        # Zagięty róg
+        painter.setBrush(QBrush(QColor("#5ba3e8")))
+        painter.drawPolygon([QPointF(22, 4), QPointF(22, 8), QPointF(26, 8)])
+        # Linie tekstu
+        painter.setPen(QPen(QColor("#ffffff"), 1.5))
+        painter.drawLine(12, 12, 22, 12)
+        painter.drawLine(12, 16, 22, 16)
+        painter.drawLine(12, 20, 18, 20)
+
     elif kind == "run":
-        painter.drawLine(9, 6, 25, 16)
-        painter.drawLine(25, 16, 9, 26)
-        painter.drawLine(9, 26, 9, 6)
+        # Play button z gradientem
+        painter.setBrush(QBrush(QColor("#89d185")))
+        painter.setPen(QPen(QColor("#6db880"), 2))
+        path = QPainterPath()
+        path.moveTo(11, 8)
+        path.lineTo(23, 16)
+        path.lineTo(11, 24)
+        path.closeSubpath()
+        painter.drawPath(path)
+
     elif kind == "hash":
-        painter.drawLine(11, 5, 9, 27)
-        painter.drawLine(21, 5, 19, 27)
+        # Hash symbol z punktami
+        painter.setBrush(QBrush(bg_color))
+        painter.setPen(Qt.PenStyle.NoPen)
+        painter.drawEllipse(4, 4, 24, 24)
+        painter.setPen(pen)
+        painter.drawLine(11, 6, 9, 26)
+        painter.drawLine(21, 6, 19, 26)
         painter.drawLine(5, 12, 27, 12)
-        painter.drawLine(4, 20, 26, 20)
+        painter.drawLine(5, 20, 27, 20)
+        # Punkty na przecięciach
+        painter.setBrush(QBrush(QColor(color)))
+        painter.setPen(Qt.PenStyle.NoPen)
+        painter.drawEllipse(9, 10, 2, 2)
+        painter.drawEllipse(19, 10, 2, 2)
+        painter.drawEllipse(9, 18, 2, 2)
+        painter.drawEllipse(19, 18, 2, 2)
+
     elif kind == "search":
-        painter.drawEllipse(5, 5, 15, 15)
-        painter.drawLine(19, 19, 27, 27)
+        # Lupa z efektem szkła
+        painter.setBrush(QBrush(bg_color))
+        painter.setPen(Qt.PenStyle.NoPen)
+        painter.drawEllipse(5, 5, 14, 14)
+        painter.setPen(pen)
+        painter.drawEllipse(5, 5, 14, 14)
+        painter.drawLine(17, 17, 27, 27)
+        # Uchwyt lupy
+        painter.setPen(QPen(QColor(color), 3))
+        painter.drawLine(17, 17, 27, 27)
+
     elif kind == "clear":
-        painter.drawLine(8, 8, 24, 24)
-        painter.drawLine(24, 8, 8, 24)
+        painter.setBrush(QBrush(bg_color))
+        painter.setPen(Qt.PenStyle.NoPen)
+        painter.drawEllipse(4, 4, 24, 24)
+        painter.setPen(pen)
+        painter.drawLine(9, 9, 23, 23)
+        painter.drawLine(23, 9, 9, 23)
+
     else:
+        painter.setBrush(QBrush(bg_color))
+        painter.setPen(pen)
         painter.drawRoundedRect(6, 6, 20, 20, 4, 4)
+
     painter.end()
     return QIcon(pix)
 
@@ -324,7 +423,6 @@ if QT_AVAILABLE:
             return pix.scaled(width, height, Qt.AspectRatioMode.KeepAspectRatio,
                             Qt.TransformationMode.SmoothTransformation)
     return QPixmap()
-    return QIcon(pix)
 
 
 
@@ -431,7 +529,7 @@ if QT_AVAILABLE:
       def __init__(self, archive_path: str, entries, fmt: str, parent=None):
           super().__init__(parent)
           self.setWindowTitle("%s - %s" % (settings.t("info_title"), os.path.basename(archive_path)))
-          self.resize(820, 480)
+          self.resize(600, 350)
           layout = QVBoxLayout(self)
 
           summary = QLabel("%s: %s | %s: %d | %s: %s" % (
@@ -520,8 +618,8 @@ if QT_AVAILABLE:
       def __init__(self, parent=None):
           super().__init__(parent)
           self.setWindowTitle(settings.t("shortcut_help_title"))
-          self.resize(440, 520)
-          self.setMinimumSize(400, 420)
+          self.resize(380, 450)
+          self.setMinimumSize(360, 400)
           self.setModal(True)
 
           dark = bool(getattr(settings, "dark_theme", False))
@@ -607,7 +705,7 @@ if QT_AVAILABLE:
       def __init__(self, parent=None):
           super().__init__(parent)
           self.setWindowTitle(settings.t("about"))
-          self.resize(600, 450)
+          self.resize(500, 380)
           layout = QVBoxLayout(self)
           layout.setSpacing(16)
           layout.setContentsMargins(20, 20, 20, 20)
@@ -816,7 +914,8 @@ if QT_AVAILABLE:
             central = QWidget()
             self.setCentralWidget(central)
             root = QVBoxLayout(central)
-            root.setContentsMargins(8, 8, 8, 8)
+            root.setContentsMargins(3, 3, 3, 3)
+            root.setSpacing(3)
 
             self._title_label = QLabel(settings.t("app_title"))
             self._title_label.setObjectName("TitleLabel")
@@ -824,25 +923,29 @@ if QT_AVAILABLE:
             self._version_label.setObjectName("HintLabel")
 
             title_icon = QLabel()
-            title_pixmap = load_image("docs/app.png", 64, 64)
+            title_pixmap = load_image("docs/app.png", 40, 40)
             if not title_pixmap.isNull():
                 title_icon.setPixmap(title_pixmap)
 
             title_layout = QHBoxLayout()
             title_layout.addWidget(self._title_label)
             title_layout.addWidget(self._version_label)
-            title_layout.setSpacing(8)
+            title_layout.setSpacing(4)
 
             header = QHBoxLayout()
+            header.setSpacing(4)
             header.addWidget(title_icon)
             header.addLayout(title_layout)
             header.addStretch(1)
             root.addLayout(header)
 
             self.tabs = QTabWidget()
-            root.addWidget(self.tabs, 3)
+            root.addWidget(self.tabs, 4)
+            root.setSpacing(4)
             log_box = QGroupBox(settings.t("log"))
             log_layout = QVBoxLayout(log_box)
+            log_layout.setContentsMargins(4, 4, 4, 4)
+            log_layout.setSpacing(4)
             log_tools = QHBoxLayout()
             self.btn_clear_log = QPushButton(settings.t("clear_log"))
             self.btn_clear_log.setIcon(build_icon("clear"))
@@ -856,6 +959,7 @@ if QT_AVAILABLE:
             self.log_widget = QPlainTextEdit()
             self.log_widget.setReadOnly(True)
             self.log_widget.setMaximumBlockCount(Logger.MAX_BLOCKS)
+            self.log_widget.setStyleSheet("padding: 2px;")
             log_layout.addWidget(self.log_widget, 1)
 
             # Logger po utworzeniu widgetu logu
@@ -875,12 +979,14 @@ if QT_AVAILABLE:
             self.logger.log("ZIPps v%s started (GUI)" % __version__)
 
             self.status_label = QLabel(settings.t("status_ready"))
+            self.status_label.setStyleSheet("padding: 1px 4px;")
             self.status_bar = self.statusBar()
             self.status_bar.addWidget(self.status_label, 1)
             self.progress_bar = QProgressBar()
             self.progress_bar.setRange(0, 100)
             self.progress_bar.setValue(0)
-            self.progress_bar.setFixedWidth(260)
+            self.progress_bar.setFixedWidth(200)
+            self.progress_bar.setMaximumHeight(16)
             self.status_bar.addPermanentWidget(self.progress_bar)
             self.notify = Notifier(self.status_bar, self.log)
 
@@ -904,25 +1010,32 @@ if QT_AVAILABLE:
             if settings.remember_window and settings.window_geometry:
                 try:
                     x, y, w_, h_ = (int(v) for v in settings.window_geometry.split(","))
+                    # Ogranicz maksymalny rozmiar, aby okno mieściło się na ekranie
+                    screen = QApplication.primaryScreen()
+                    if screen:
+                        screen_geo = screen.availableGeometry()
+                        w_ = min(w_, screen_geo.width() - 50)
+                        h_ = min(h_, screen_geo.height() - 50)
                     self.setGeometry(x, y, w_, h_)
                 except (ValueError, TypeError):
                     pass
             else:
-                self.adjustSize()
+                self.resize(750, 480)
 
-            # Minimum okna = faktyczne minimum layoutu (minimumSizeHint),
-            # dzieki czemu okno jest najmniejsze z mozliwych, a nic nie jest
-            # ucinane ani zakrywane. sizeHint() byl zdecydowanie za duzy.
-            def _apply_compact_size():
-                hint = central.layout().minimumSize() + QSize(
-                    2 * 8, 2 * 8 + self.menuBar().height() + self.statusBar().height())
-                self.setMinimumSize(hint)
-                if not settings.window_geometry:
-                    self.resize(hint)
-                elif self.width() < hint.width() or self.height() < hint.height():
-                    self.resize(max(self.width(), hint.width()),
-                                max(self.height(), hint.height()))
-            QTimer.singleShot(0, _apply_compact_size)
+            # Okno mozna dowolnie zmieniac - minimum wyliczane dopiero po pokazaniu,
+            # na podstawie faktycznego minimumSizeHint layoutu (potrzebuje okna
+            # z juz policzona geometria, inaczej zwraca zly wynik).
+            def _apply_min_size():
+                hint = central.minimumSizeHint()
+                if hint.isValid():
+                    margin = 2 * 8
+                    frame = QSize(margin, margin + self.menuBar().height()
+                                  + self.statusBar().height())
+                    self.setMinimumSize(hint + frame)
+                    if self.width() < self.minimumWidth() or self.height() < self.minimumHeight():
+                        self.resize(max(self.width(), self.minimumWidth()),
+                                    max(self.height(), self.minimumHeight()))
+            QTimer.singleShot(150, _apply_min_size)
 
         # -----------------------------------------------------------------
         #  Zakladka 1: Generator
@@ -930,6 +1043,8 @@ if QT_AVAILABLE:
         def build_generate_tab(self):
             w = QWidget()
             layout = QVBoxLayout(w)
+            layout.setContentsMargins(4, 4, 4, 4)
+            layout.setSpacing(4)
 
             self.gen_folder_row = PathRow(settings.t("output_folder"), "folder")
             layout.addWidget(self.gen_folder_row)
@@ -938,6 +1053,8 @@ if QT_AVAILABLE:
                 self.gen_folder_edit.setText(settings.default_dir)
 
             form = QFormLayout()
+            form.setContentsMargins(2, 2, 2, 2)
+            form.setSpacing(4)
             self.gen_name_edit = QLineEdit("sample")
             self.gen_ext_edit = QLineEdit("txt")
             self.gen_size_spin = QSpinBox()
@@ -992,11 +1109,14 @@ if QT_AVAILABLE:
             layout.addWidget(self.gen_code_label)
             self.gen_code_edit = QPlainTextEdit()
             self.gen_code_edit.setPlaceholderText("Content of the generated file...")
+            self.gen_code_edit.setStyleSheet("padding: 4px;")
             self.gen_code_edit.setPlainText(DEFAULT_GEN_CODE)
             self.gen_code_edit.setTabStopDistance(32)
             layout.addWidget(self.gen_code_edit, 1)
 
             buttons = QGridLayout()
+            buttons.setContentsMargins(2, 2, 2, 2)
+            buttons.setSpacing(3)
             self.gen_buttons = []
             specs = [
                 ("btn_generate_text", self.do_generate_text, "file"),
@@ -1016,8 +1136,10 @@ if QT_AVAILABLE:
             for index, (key, handler, icon) in enumerate(specs):
                 button = QPushButton(settings.t(key))
                 button.setIcon(build_icon(icon))
+                button.setIconSize(QSize(16, 16))
+                button.setStyleSheet("padding: 3px 6px; min-height: 18px;")
                 button.clicked.connect(handler)
-                buttons.addWidget(button, index // 3, index % 3)
+                buttons.addWidget(button, index // 4, index % 4)
             layout.addLayout(buttons)
 
             last_row = QHBoxLayout()
@@ -1047,35 +1169,42 @@ if QT_AVAILABLE:
         def build_pack_tab(self):
             w = QWidget()
             layout = QVBoxLayout(w)
+            layout.setContentsMargins(4, 4, 4, 4)
+            layout.setSpacing(4)
 
             source_box = QGroupBox(settings.t("group_source"))
             source_layout = QVBoxLayout(source_box)
-            hint = QLabel(settings.t("drag_hint"))
-            hint.setObjectName("HintLabel")
-            hint.setAlignment(Qt.AlignmentFlag.AlignCenter)
-            source_layout.addWidget(hint)
+            source_layout.setContentsMargins(3, 3, 3, 3)
+            source_layout.setSpacing(2)
 
-            self.pack_list = QListWidget()
-            self.pack_list.setSelectionMode(QAbstractItemView.SelectionMode.ExtendedSelection)
-            self.pack_list.setContextMenuPolicy(Qt.ContextMenuPolicy.CustomContextMenu)
-            self.pack_list.customContextMenuRequested.connect(self.pack_list_menu)
-            self.pack_list.itemSelectionChanged.connect(self.update_pack_summary)
-            source_layout.addWidget(self.pack_list, 1)
-
+            # Przyciski narzędzi na górze (kompaktowe)
             tools = QHBoxLayout()
-            self.btn_add_files = QPushButton(settings.t("add_files"))
+            tools.setSpacing(2)
+            self.btn_add_files = QPushButton("+")
             self.btn_add_files.setIcon(build_icon("add"))
+            self.btn_add_files.setIconSize(QSize(14, 14))
+            self.btn_add_files.setStyleSheet("padding: 2px 6px; min-height: 16px;")
+            self.btn_add_files.setToolTip(settings.t("add_files"))
             self.btn_add_files.clicked.connect(self.pick_pack_items)
-            self.btn_add_folder = QPushButton(settings.t("add_folder"))
+            self.btn_add_folder = QPushButton("📁")
             self.btn_add_folder.setIcon(build_icon("folder"))
+            self.btn_add_folder.setIconSize(QSize(14, 14))
+            self.btn_add_folder.setStyleSheet("padding: 2px 6px; min-height: 16px;")
+            self.btn_add_folder.setToolTip(settings.t("add_folder"))
             self.btn_add_folder.clicked.connect(self.add_pack_folder)
-            self.btn_remove = QPushButton(settings.t("remove"))
+            self.btn_remove = QPushButton("−")
             self.btn_remove.setIcon(build_icon("remove"))
+            self.btn_remove.setIconSize(QSize(14, 14))
+            self.btn_remove.setStyleSheet("padding: 2px 6px; min-height: 16px;")
+            self.btn_remove.setToolTip(settings.t("remove"))
             self.btn_remove.clicked.connect(self.remove_pack_items)
-            self.btn_clear_items = QPushButton(settings.t("clear"))
+            self.btn_clear_items = QPushButton("×")
+            self.btn_clear_items.setStyleSheet("padding: 2px 6px; min-height: 16px;")
+            self.btn_clear_items.setToolTip(settings.t("clear"))
             self.btn_clear_items.clicked.connect(self.clear_pack_items)
             self.pack_summary = QLabel("")
             self.pack_summary.setObjectName("HintLabel")
+            self.pack_summary.setStyleSheet("font-size: 7pt;")
             for button in (self.btn_add_files, self.btn_add_folder, self.btn_remove,
                            self.btn_clear_items):
                 tools.addWidget(button)
@@ -1083,39 +1212,57 @@ if QT_AVAILABLE:
             tools.addWidget(self.pack_summary)
             source_layout.addLayout(tools)
 
+            # Lista plików
+            self.pack_list = QListWidget()
+            self.pack_list.setSelectionMode(QAbstractItemView.SelectionMode.ExtendedSelection)
+            self.pack_list.setContextMenuPolicy(Qt.ContextMenuPolicy.CustomContextMenu)
+            self.pack_list.customContextMenuRequested.connect(self.pack_list_menu)
+            self.pack_list.itemSelectionChanged.connect(self.update_pack_summary)
+            source_layout.addWidget(self.pack_list, 1)
+
+            # Filtry w jednym rzędzie
             filters = QHBoxLayout()
+            filters.setSpacing(2)
             self.pack_filter_edit = QLineEdit()
             self.pack_filter_edit.setPlaceholderText(settings.t("pattern_help"))
+            self.pack_filter_edit.setStyleSheet("padding: 2px;")
             self.pack_skip_hidden = QCheckBox(settings.t("scan_hidden"))
             self.pack_skip_hidden.setChecked(settings.skip_hidden)
+            self.pack_skip_hidden.setStyleSheet("spacing: 2px;")
             self.pack_keep_rel = QCheckBox(settings.t("include_root"))
             self.pack_keep_rel.setChecked(settings.keep_relative)
+            self.pack_keep_rel.setStyleSheet("spacing: 2px;")
             filters.addWidget(QLabel(settings.t("filter")))
             filters.addWidget(self.pack_filter_edit, 1)
             filters.addWidget(self.pack_skip_hidden)
             filters.addWidget(self.pack_keep_rel)
             source_layout.addLayout(filters)
-            layout.addWidget(source_box, 3)
+            layout.addWidget(source_box, 4)
 
             out_box = QGroupBox(settings.t("group_output"))
             out_layout = QGridLayout(out_box)
+            out_layout.setContentsMargins(3, 3, 3, 3)
+            out_layout.setSpacing(2)
             self.pack_archive_row = PathRow(settings.t("archive_path"), "save",
                                             file_filter=archive_file_filter())
-            out_layout.addWidget(self.pack_archive_row, 0, 0, 1, 3)
+            out_layout.addWidget(self.pack_archive_row, 0, 0, 1, 4)
             self.pack_archive_edit = self.pack_archive_row.edit
             self.pack_archive_edit.setReadOnly(False)
 
             self.pack_format_combo = QComboBox()
+            self.pack_format_combo.setStyleSheet("padding: 2px;")
             # czytelne etykiety z tlumaczen (np. "ZIP (.zip)") zamiast kodow formatu
             self._format_labels = {
                 "zip": "format_zip", "tar": "format_tar",
                 "targz": "format_targz", "tarbz2": "format_tarbz2",
-                "tarxz": "format_tarxz", "gz": "format_gz",
-                "bz2": "format_bz2", "xz": "format_xz",
-                "7z": "format_7z", "pfa": "format_pfa",
+                "tarxz": "format_tarxz", "tarzst": "format_tarzst",
+                "tarlz4": "format_tarlz4", "tarbr": "format_tarbr",
+                "gz": "format_gz", "bz2": "format_bz2", "xz": "format_xz",
+                "zst": "format_zst", "lz4": "format_lz4", "br": "format_br",
+                "ar": "format_ar", "7z": "format_7z", "pfa": "format_pfa",
             }
-            for value in ("zip", "tar", "targz", "tarbz2", "tarxz",
-                          "gz", "bz2", "xz", "7z", "pfa"):
+            for value in ("zip", "tar", "targz", "tarbz2", "tarxz", "tarzst", "tarlz4", "tarbr",
+                          "gz", "bz2", "xz", "zst", "lz4", "br", "ar", "7z", "pfa"):
                 self.pack_format_combo.addItem(settings.t(self._format_labels[value]), value)
             self.pack_format_combo.setCurrentIndex(
                 max(0, self.pack_format_combo.findData(settings.last_format)))
@@ -1126,27 +1273,35 @@ if QT_AVAILABLE:
             self.pack_level_spin = QSpinBox()
             self.pack_level_spin.setRange(0, 9)
             self.pack_level_spin.setValue(int(settings.compression_level))
+            self.pack_level_spin.setStyleSheet("padding: 2px;")
             out_layout.addWidget(QLabel(settings.t("compression_level")), 1, 2)
             out_layout.addWidget(self.pack_level_spin, 1, 3)
 
             self.pack_password_edit = QLineEdit()
             self.pack_password_edit.setEchoMode(QLineEdit.EchoMode.Password)
             self.pack_password_edit.setPlaceholderText(settings.t("password_optional"))
+            self.pack_password_edit.setStyleSheet("padding: 2px;")
             self.pack_password2_edit = QLineEdit()
             self.pack_password2_edit.setEchoMode(QLineEdit.EchoMode.Password)
+            self.pack_password2_edit.setStyleSheet("padding: 2px;")
             out_layout.addWidget(QLabel(settings.t("password")), 2, 0)
             out_layout.addWidget(self.pack_password_edit, 2, 1, 1, 2)
             out_layout.addWidget(self.pack_password2_edit, 2, 3)
 
             self.pack_append_check = QCheckBox(settings.t("add_to_archive"))
+            self.pack_append_check.setStyleSheet("spacing: 2px;")
             self.pack_follow_check = QCheckBox(settings.t("follow_symlinks"))
             self.pack_follow_check.setChecked(settings.follow_symlinks)
+            self.pack_follow_check.setStyleSheet("spacing: 2px;")
             out_layout.addWidget(self.pack_append_check, 3, 0, 1, 2)
             out_layout.addWidget(self.pack_follow_check, 3, 2, 1, 2)
 
             actions = QHBoxLayout()
+            actions.setSpacing(2)
             self.btn_pack = QPushButton(settings.t("create_archive"))
             self.btn_pack.setIcon(build_icon("archive"))
+            self.btn_pack.setIconSize(QSize(16, 16))
+            self.btn_pack.setStyleSheet("padding: 4px 12px; min-height: 20px;")
             self.btn_pack.clicked.connect(self.do_pack)
             actions.addStretch(1)
             actions.addWidget(self.btn_pack)
@@ -1190,8 +1345,12 @@ if QT_AVAILABLE:
         def build_unpack_tab(self):
             w = QWidget()
             layout = QVBoxLayout(w)
+            layout.setContentsMargins(4, 4, 4, 4)
+            layout.setSpacing(4)
 
             top = QGridLayout()
+            top.setContentsMargins(2, 2, 2, 2)
+            top.setSpacing(4)
             self.unpack_archive_row = PathRow(settings.t("select_archive"), "open",
                                               file_filter=archive_file_filter())
             self.unpack_archive_edit = self.unpack_archive_row.edit
@@ -1228,6 +1387,7 @@ if QT_AVAILABLE:
             layout.addWidget(self.unpack_list_widget, 1)
 
             filter_row = QHBoxLayout()
+            filter_row.setSpacing(4)
             self.unpack_filter_edit = QLineEdit()
             self.unpack_filter_edit.setPlaceholderText(settings.t("filter"))
             self.unpack_filter_edit.textChanged.connect(self.filter_archive_entries)
@@ -1277,9 +1437,13 @@ if QT_AVAILABLE:
         def build_security_tab(self):
             w = QWidget()
             layout = QVBoxLayout(w)
+            layout.setContentsMargins(4, 4, 4, 4)
+            layout.setSpacing(4)
 
             hash_box = QGroupBox(settings.t("group_hash"))
             hl = QGridLayout(hash_box)
+            hl.setContentsMargins(4, 4, 4, 4)
+            hl.setSpacing(4)
             self.sec_file_row = PathRow(settings.t("hash_file"), "open",
                                         file_filter=archive_file_filter())
             self.sec_file_edit = self.sec_file_row.edit
@@ -1335,6 +1499,8 @@ if QT_AVAILABLE:
 
             pfa_box = QGroupBox(settings.t("group_pfa"))
             pl = QGridLayout(pfa_box)
+            pl.setContentsMargins(4, 4, 4, 4)
+            pl.setSpacing(4)
             self.pfa_file_row = PathRow(settings.t("pfa_file"), "open",
                                         file_filter=archive_file_filter("pfa"))
             self.pfa_file_edit = self.pfa_file_row.edit
@@ -1370,13 +1536,26 @@ if QT_AVAILABLE:
         def build_settings_tab(self):
             w = QWidget()
             layout = QVBoxLayout(w)
+            layout.setContentsMargins(2, 2, 2, 2)
+            layout.setSpacing(2)
+
+            # ScrollArea dla zawartości
+            from PySide6.QtWidgets import QScrollArea
+            scroll = QScrollArea()
+            scroll.setWidgetResizable(True)
+            scroll.setHorizontalScrollBarPolicy(Qt.ScrollBarPolicy.ScrollBarAlwaysOff)
+            scroll.setVerticalScrollBarPolicy(Qt.ScrollBarPolicy.ScrollBarAsNeeded)
+            scroll.setStyleSheet("QScrollArea { border: none; } QScrollBar:vertical { width: 8px; }")
+
+            scroll_content = QWidget()
+            scroll_layout = QVBoxLayout(scroll_content)
+            scroll_layout.setContentsMargins(2, 2, 2, 2)
+            scroll_layout.setSpacing(3)
 
             appearance = QGroupBox(settings.t("group_appearance"))
             al = QGridLayout(appearance)
-            self.lang_combo = QComboBox()
-            self.lang_combo.addItem("Polski", "pl")
-            self.lang_combo.addItem("English", "en")
-            self.lang_combo.setCurrentIndex(max(0, self.lang_combo.findData(settings.language)))
+            al.setContentsMargins(3, 3, 3, 3)
+            al.setSpacing(3)
             self.theme_check = QCheckBox(settings.t("appearance_qss"))
             self.theme_check.setChecked(bool(settings.dark_theme))
             self.modal_check = QCheckBox(settings.t("modal_dialogs"))
@@ -1391,20 +1570,20 @@ if QT_AVAILABLE:
             self.zoom_spin = QSpinBox()
             self.zoom_spin.setRange(7, 20)
             self.zoom_spin.setValue(int(self.font().pointSize() or 10))
-            al.addWidget(QLabel(settings.t("language")), 0, 0)
-            al.addWidget(self.lang_combo, 0, 1)
-            al.addWidget(self.theme_check, 0, 2)
-            al.addWidget(self.modal_check, 1, 0, 1, 2)
-            al.addWidget(self.remember_window_check, 1, 2)
-            al.addWidget(self.remember_paths_check, 2, 0, 1, 2)
-            al.addWidget(self.default_dir_row, 3, 0, 1, 3)
-            al.addWidget(self.zoom_label, 4, 0)
-            al.addWidget(self.zoom_spin, 4, 1)
-            layout.addWidget(appearance)
+            al.addWidget(self.theme_check, 0, 0)
+            al.addWidget(self.modal_check, 0, 1)
+            al.addWidget(self.remember_window_check, 0, 2)
+            al.addWidget(self.remember_paths_check, 1, 0, 1, 2)
+            al.addWidget(self.default_dir_row, 2, 0, 1, 3)
+            al.addWidget(self.zoom_label, 3, 0)
+            al.addWidget(self.zoom_spin, 3, 1)
+            scroll_layout.addWidget(appearance)
 
             # --- Zachowanie ---
             behavior = QGroupBox(settings.t("group_behavior"))
             bl = QGridLayout(behavior)
+            bl.setContentsMargins(3, 3, 3, 3)
+            bl.setSpacing(3)
             self.confirm_pack_check = QCheckBox(settings.t("confirm_before_pack"))
             self.confirm_pack_check.setChecked(bool(settings.confirm_before_pack))
             self.confirm_unpack_check = QCheckBox(settings.t("confirm_before_unpack"))
@@ -1437,11 +1616,13 @@ if QT_AVAILABLE:
             self.overwrite_combo.setCurrentIndex(max(0, idx))
             overwrite_row.addWidget(self.overwrite_combo, 1)
             bl.addLayout(overwrite_row, 4, 0, 1, 2)
-            layout.addWidget(behavior)
+            scroll_layout.addWidget(behavior)
 
             # --- Log i bezpieczenstwo ---
             tools_box = QGroupBox(settings.t("group_hash"))
             tl = QGridLayout(tools_box)
+            tl.setContentsMargins(3, 3, 3, 3)
+            tl.setSpacing(3)
             self.log_file_check = QCheckBox(settings.t("log_to_file"))
             self.log_file_check.setChecked(bool(settings.log_to_file))
             self.timestamp_check = QCheckBox(settings.t("timestamp_log"))
@@ -1464,11 +1645,13 @@ if QT_AVAILABLE:
             hidx = self.hash_algo_combo.findData(settings.default_hash_algo)
             self.hash_algo_combo.setCurrentIndex(max(0, hidx))
             tl.addWidget(self.hash_algo_combo, 2, 1)
-            layout.addWidget(tools_box)
+            scroll_layout.addWidget(tools_box)
 
             # --- Wydajnosc ---
             perf = QGroupBox(settings.t("group_performance"))
             pl_ = QGridLayout(perf)
+            pl_.setContentsMargins(3, 3, 3, 3)
+            pl_.setSpacing(3)
             pl_.addWidget(QLabel(settings.t("chunk_size")), 0, 0)
             self.chunk_spin = QSpinBox()
             self.chunk_spin.setRange(16, 4096)
@@ -1482,10 +1665,12 @@ if QT_AVAILABLE:
             self.workers_spin.setValue(int(settings.parallel_workers))
             pl_.addWidget(self.workers_spin, 0, 3)
             pl_.setColumnStretch(4, 1)
-            layout.addWidget(perf)
+            scroll_layout.addWidget(perf)
 
             about = QGroupBox(settings.t("group_about"))
             bl = QVBoxLayout(about)
+            bl.setContentsMargins(3, 3, 3, 3)
+            bl.setSpacing(3)
             self.about_label = QLabel()
             self.about_label.setWordWrap(True)
             bl.addWidget(self.about_label)
@@ -1507,8 +1692,11 @@ if QT_AVAILABLE:
                 about_buttons.addWidget(button)
             about_buttons.addStretch(1)
             bl.addLayout(about_buttons)
-            layout.addWidget(about)
-            layout.addStretch(1)
+            scroll_layout.addWidget(about)
+            scroll_layout.addStretch(1)
+
+            scroll.setWidget(scroll_content)
+            layout.addWidget(scroll)
 
             self.tabs.addTab(w, settings.t("tab_settings"))
 
@@ -1593,6 +1781,9 @@ if QT_AVAILABLE:
             menu_view = self.menuBar().addMenu(settings.t("menu_view"))
             self.act_clear_log_2 = menu_view.addAction(self.act_clear_log)
             self.menu_view = menu_view
+
+            # Submenu Language
+            menu_language = menu_view.addMenu(settings.t("language"))
             lang_group = QActionGroup(self)
             self.lang_actions = {}
             for code in ("pl", "en"):
@@ -1600,7 +1791,7 @@ if QT_AVAILABLE:
                 act.setChecked(settings.language == code)
                 act.triggered.connect(lambda _checked=False, c=code: self.set_language(c))
                 lang_group.addAction(act)
-                menu_view.addAction(act)
+                menu_language.addAction(act)
                 self.lang_actions[code] = act
 
             menu_help = self.menuBar().addMenu(settings.t("menu_help"))
@@ -1621,8 +1812,6 @@ if QT_AVAILABLE:
                 self.remove_pack_items)
 
         def connect_signals(self):
-            self.lang_combo.currentIndexChanged.connect(
-                lambda _i: self.set_language(self.lang_combo.currentData()))
             self.theme_check.toggled.connect(self.on_theme_toggled)
             self.modal_check.toggled.connect(self.on_modal_toggled)
             self.default_dir_row.pathChanged.connect(self._on_default_dir_changed)
@@ -1637,11 +1826,6 @@ if QT_AVAILABLE:
             for action in self.lang_actions.values():
                 action.setChecked(action.text().lower() == code)
             settings.language = code
-            index = self.lang_combo.findData(code)
-            if index != self.lang_combo.currentIndex():
-                self.lang_combo.blockSignals(True)
-                self.lang_combo.setCurrentIndex(index)
-                self.lang_combo.blockSignals(False)
             self.refresh_language()
 
         def _apply_retranslate(self):
@@ -2745,7 +2929,18 @@ if QT_AVAILABLE:
 def create_application(argv: Optional[Sequence[str]] = None) -> QApplication:
     """Tworzy (lub zwraca istniejaca) aplikacje Qt; wymaga dostepnego PySide6."""
     require_qt()
-    app = QApplication.instance() or QApplication(list(argv) if argv is not None else sys.argv)
+    # Wyłącz automatyczne skalowanie DPI w Windows (powoduje błędne proporcje elementów)
+    app = QApplication.instance()
+    if app is None:
+        import os
+        # Ustawienia środowiskowe dla DPI (muszą być przed utworzeniem QApplication)
+        os.environ["QT_AUTO_SCREEN_SCALE_FACTOR"] = "0"
+        os.environ["QT_ENABLE_HIGHDPI_SCALING"] = "0"
+        from PySide6.QtCore import Qt
+        app = QApplication(list(argv) if argv is not None else sys.argv)
+        # Wyłącz skalowanie DPI
+        app.setAttribute(Qt.ApplicationAttribute.AA_EnableHighDpiScaling, False)
+        app.setAttribute(Qt.ApplicationAttribute.AA_UseHighDpiPixmaps, False)
     app.setApplicationName(__app_name__)
     app.setApplicationVersion(__version__)
     app.setOrganizationName("ZIPps")
