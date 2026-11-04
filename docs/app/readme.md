@@ -8,15 +8,17 @@
 
 One app for file generation, archive packing/unpacking, AES-256 encryption and 11 checksum algorithms — with both a GUI and a CLI.
 
-[![Version](https://img.shields.io/badge/version-2.7.0-0078D4?style=flat-square)](#release-notes)
-[![Platform](https://img.shields.io/badge/platform-Windows%2010%20%7C%2011-0078D4?style=flat-square&logo=windows&logoColor=white)](#system-requirements)
-[![Architecture](https://img.shields.io/badge/arch-x64-5C2D91?style=flat-square)](#system-requirements)
-[![GUI](https://img.shields.io/badge/GUI-PySide6-41CD52?style=flat-square&logo=qt&logoColor=white)](#getting-started)
-[![CLI](https://img.shields.io/badge/CLI-supported-2B579A?style=flat-square&logo=windowsterminal&logoColor=white)](#command-line-reference)
-[![Python](https://img.shields.io/badge/python-3.9%2B-3776AB?style=flat-square&logo=python&logoColor=white)](#system-requirements)
-[![Languages](https://img.shields.io/badge/UI-English%20%7C%20Polski-107C10?style=flat-square)](#supported-languages)
-[![License](https://img.shields.io/badge/license-Proprietary-6E6E6E?style=flat-square)](#legal-notice)
-[![Publisher](https://img.shields.io/badge/publisher-polsoft.ITS%E2%84%A2-blueviolet?style=flat-square)](https://github.com/polsoft-it)
+<p>
+  <a href="#release-notes"><img src="https://img.shields.io/badge/version-2.7.0-0078D4?style=flat-square" alt="Version" /></a>
+  <a href="#system-requirements"><img src="https://img.shields.io/badge/platform-Windows%2010%20%7C%2011-0078D4?style=flat-square&logo=windows&logoColor=white" alt="Platform" /></a>
+  <a href="#system-requirements"><img src="https://img.shields.io/badge/arch-x64-5C2D91?style=flat-square" alt="Architecture" /></a>
+  <a href="#getting-started"><img src="https://img.shields.io/badge/GUI-PySide6-41CD52?style=flat-square&logo=qt&logoColor=white" alt="GUI" /></a>
+  <a href="#command-line-reference"><img src="https://img.shields.io/badge/CLI-supported-2B579A?style=flat-square&logo=windowsterminal&logoColor=white" alt="CLI" /></a>
+  <a href="#system-requirements"><img src="https://img.shields.io/badge/python-3.9%2B-3776AB?style=flat-square&logo=python&logoColor=white" alt="Python" /></a>
+  <a href="#supported-languages"><img src="https://img.shields.io/badge/UI-English%20%7C%20Polski-107C10?style=flat-square" alt="Languages" /></a>
+  <a href="#legal-notice"><img src="https://img.shields.io/badge/license-Proprietary-6E6E6E?style=flat-square" alt="License" /></a>
+  <a href="https://github.com/polsoft-it"><img src="https://img.shields.io/badge/publisher-polsoft.ITS%E2%84%A2-blueviolet?style=flat-square" alt="Publisher" /></a>
+</p>
 
 <table align="center">
   <tr>
@@ -271,9 +273,11 @@ When reporting an issue, please include the app version, your Windows version an
 
 ---
 
-[![Author](https://img.shields.io/badge/author-Sebastian_Januchowski-0078D4?style=flat-square)](#legal-notice)
-[![Company](https://img.shields.io/badge/company-polsoft.ITS%E2%84%A2-blueviolet?style=flat-square)](https://github.com/polsoft-it)
-[![Email](https://img.shields.io/badge/email-polsoft.its%40mail.com-D13438?style=flat-square&logo=gmail&logoColor=white)](mailto:polsoft.its@mail.com)
-[![GitHub](https://img.shields.io/badge/GitHub-polsoft--it-181717?style=flat-square&logo=github)](https://github.com/polsoft-it)
+<p>
+  <a href="#legal-notice"><img src="https://img.shields.io/badge/author-Sebastian_Januchowski-0078D4?style=flat-square" alt="Author" /></a>
+  <a href="https://github.com/polsoft-it"><img src="https://img.shields.io/badge/company-polsoft.ITS%E2%84%A2-blueviolet?style=flat-square" alt="Company" /></a>
+  <a href="mailto:polsoft.its@mail.com"><img src="https://img.shields.io/badge/email-polsoft.its%40mail.com-D13438?style=flat-square&logo=gmail&logoColor=white" alt="Email" /></a>
+  <a href="https://github.com/polsoft-it"><img src="https://img.shields.io/badge/GitHub-polsoft--it-181717?style=flat-square&logo=github" alt="GitHub" /></a>
+</p>
 
 </div>
