@@ -13,6 +13,43 @@ import zlib
 
 from dataclasses import dataclass, field
 
+# Nowe biblioteki kompresji
+try:
+    import zstandard as zstd
+    ZSTD_AVAILABLE = True
+except ImportError:
+    ZSTD_AVAILABLE = False
+
+try:
+    import lz4.frame
+    LZ4_AVAILABLE = True
+except ImportError:
+    LZ4_AVAILABLE = False
+
+try:
+    import rarfile
+    RAR_AVAILABLE = True
+except ImportError:
+    RAR_AVAILABLE = False
+
+try:
+    import pycdlib
+    ISO_AVAILABLE = True
+except ImportError:
+    ISO_AVAILABLE = False
+
+try:
+    import brotli
+    BROTLI_AVAILABLE = True
+except ImportError:
+    BROTLI_AVAILABLE = False
+
+try:
+    import arpy
+    AR_AVAILABLE = True
+except ImportError:
+    AR_AVAILABLE = False
+
 def py7zr_module():
     """Modul py7zr ladowany przy uzyciu (opcjonalny)."""
     import py7zr
@@ -22,8 +59,8 @@ def py7zr_module():
 from zipps_pkg.core import (
     PackerError, Empty, emit, human_size, _check_cancel, _make_progress,
     detect_format, normalize_relative, safe_join, open_tar, strip_archive_ext,
-    _tar_extract_member, _zip_extract_entry,
-    TAR_MODES, PY7ZR_AVAILABLE,
+    _tar_extract_member, _zip_extract_entry, _uncompressed_size, _gzip_original_name,
+    TAR_MODES, PY7ZR_AVAILABLE, ZSTD_AVAILABLE, LZ4_AVAILABLE, BROTLI_AVAILABLE, AR_AVAILABLE,
 )
 from zipps_pkg.settings_mod import settings
 from zipps_pkg.logging_mod import Logger
@@ -136,7 +173,7 @@ class UnpackerCore:
                         "is_dir": False,
                         "sha256": entry.sha256,
                     })
-        elif fmt in ("gz", "bz2", "xz"):
+        elif fmt in ("gz", "bz2", "xz", "zst", "lz4", "br"):
             # Single-file compression formats
             # nazwa wpisu: bez rozszerzenia kompresji (dla gz - nazwa z naglowka)
             base = os.path.basename(strip_archive_ext(archive_path))
@@ -155,6 +192,58 @@ class UnpackerCore:
                 "encrypted": False,
                 "is_dir": False,
             })
+        elif fmt == "ar":
+            if not AR_AVAILABLE:
+                raise PackerError("AR wymaga modulu 'arpy'. Zainstaluj: pip install arpy")
+            try:
+                with arpy.Archive(archive_path) as ar:
+                    ar.read_all_headers()
+                    for name in ar.archived_files.keys():
+                        if isinstance(name, bytes):
+                            name = name.decode('utf-8', errors='replace')
+                        entries.append({
+                            "name": name,
+                            "size": ar.archived_files[name.encode('utf-8') if isinstance(name, str) else name].size,
+                            "date": time.localtime(os.path.getmtime(archive_path))[:6],
+                            "encrypted": False,
+                            "is_dir": False,
+                        })
+            except Exception:
+                pass
+        elif fmt == "rar":
+            if not RAR_AVAILABLE:
+                raise PackerError("RAR wymaga modulu 'rarfile'. Zainstaluj: pip install rarfile")
+            try:
+                with rarfile.RarFile(archive_path) as rf:
+                    for info in rf.infolist():
+                        entries.append({
+                            "name": info.filename,
+                            "size": info.file_size,
+                            "date": time.localtime(info.date_time)[:6],
+                            "encrypted": bool(info.flag_bits & 0x1),
+                            "is_dir": info.is_dir(),
+                        })
+            except rarfile.BadRarFile:
+                pass
+        elif fmt == "iso":
+            if not ISO_AVAILABLE:
+                raise PackerError("ISO wymaga modulu 'pycdlib'. Zainstaluj: pip install pycdlib")
+            try:
+                iso = pycdlib.PyCdlib()
+                iso.open(archive_path)
+                for path, _ in iso.list_iso():
+                    if path.endswith('/') or path == '':
+                        continue
+                    entries.append({
+                        "name": path.lstrip('/'),
+                        "size": iso.get_record(path).data_length,
+                        "date": time.localtime(os.path.getmtime(archive_path))[:6],
+                        "encrypted": False,
+                        "is_dir": False,
+                    })
+                iso.close()
+            except Exception:
+                pass
         return entries
 
     def list_contents(self, archive_path, password=None):
@@ -308,7 +397,7 @@ class UnpackerCore:
                 result.overwritten = res.overwritten
                 result.blocked.extend(res.blocked)
                 result.errors.extend(res.errors)
-        elif fmt in ("gz", "bz2", "xz"):
+        elif fmt in ("gz", "bz2", "xz", "zst", "lz4", "br"):
             # Single-file compression formats
             _check_cancel(cancel_event)
             if not files:
@@ -344,6 +433,28 @@ class UnpackerCore:
                         with lzma.open(archive_path, "rb") as f_in:
                             with open(target, "wb") as f_out:
                                 shutil.copyfileobj(f_in, f_out, 1024 * 256)
+                    elif fmt == "zst":
+                        if not ZSTD_AVAILABLE:
+                            raise PackerError("ZSTD wymaga modulu 'zstandard'. Zainstaluj: pip install zstandard")
+                        with open(archive_path, "rb") as f_in:
+                            dctx = zstd.ZstdDecompressor()
+                            with dctx.stream_reader(f_in) as reader:
+                                with open(target, "wb") as f_out:
+                                    shutil.copyfileobj(reader, f_out, 1024 * 256)
+                    elif fmt == "lz4":
+                        if not LZ4_AVAILABLE:
+                            raise PackerError("LZ4 wymaga modulu 'lz4'. Zainstaluj: pip install lz4")
+                        with lz4.frame.open(archive_path, "rb") as f_in:
+                            with open(target, "wb") as f_out:
+                                shutil.copyfileobj(f_in, f_out, 1024 * 256)
+                    elif fmt == "br":
+                        if not BROTLI_AVAILABLE:
+                            raise PackerError("Brotli wymaga modulu 'brotli'. Zainstaluj: pip install brotli")
+                        with open(archive_path, "rb") as f_in:
+                            data = f_in.read()
+                            decompressed = brotli.decompress(data)
+                            with open(target, "wb") as f_out:
+                                f_out.write(decompressed)
                     result.extracted += 1
                     result.bytes_written += os.path.getsize(target)
                     result.overwritten += 1 if (target_exists and overwrite) else 0
@@ -351,6 +462,84 @@ class UnpackerCore:
                 except OSError as ex:
                     result.errors.append("%s: %s" % (name, ex))
                     emit(self.logger, "%s: %s" % (settings.t("error"), ex))
+        elif fmt == "ar":
+            if not AR_AVAILABLE:
+                raise PackerError("AR wymaga modulu 'arpy'. Zainstaluj: pip install arpy")
+            _check_cancel(cancel_event)
+            try:
+                with arpy.Archive(archive_path) as ar:
+                    ar.read_all_headers()
+                    for i, entry in enumerate(files, 1):
+                        _check_cancel(cancel_event)
+                        try:
+                            target = safe_join(output_folder, entry["name"])
+                            target_exists = os.path.exists(target)
+                            if not overwrite and target_exists:
+                                result.skipped += 1
+                            else:
+                                name_key = entry["name"].encode('utf-8') if isinstance(entry["name"], str) else entry["name"]
+                                with ar.open(name_key) as f_in:
+                                    with open(target, "wb") as f_out:
+                                        shutil.copyfileobj(f_in, f_out, 1024 * 256)
+                                result.extracted += 1
+                                result.bytes_written += entry["size"]
+                                result.overwritten += 1 if (target_exists and overwrite) else 0
+                                report(i, total, entry["name"])
+                        except PackerError as ex:
+                            result.blocked.append(str(ex))
+                            emit(self.logger, "%s: %s" % (settings.t("error"), ex))
+            except Exception as ex:
+                raise PackerError(settings.t("archive_damaged").format(archive_path))
+        elif fmt == "rar":
+            if not RAR_AVAILABLE:
+                raise PackerError("RAR wymaga modulu 'rarfile'. Zainstaluj: pip install rarfile")
+            _check_cancel(cancel_event)
+            try:
+                with rarfile.RarFile(archive_path) as rf:
+                    for i, entry in enumerate(files, 1):
+                        _check_cancel(cancel_event)
+                        try:
+                            target = safe_join(output_folder, entry["name"])
+                            target_exists = os.path.exists(target)
+                            if not overwrite and target_exists:
+                                result.skipped += 1
+                            else:
+                                rf.extract(entry["name"], path=output_folder)
+                                result.extracted += 1
+                                result.bytes_written += entry["size"]
+                                result.overwritten += 1 if (target_exists and overwrite) else 0
+                                report(i, total, entry["name"])
+                        except PackerError as ex:
+                            result.blocked.append(str(ex))
+                            emit(self.logger, "%s: %s" % (settings.t("error"), ex))
+            except rarfile.BadRarFile:
+                raise PackerError(settings.t("archive_damaged").format(archive_path))
+        elif fmt == "iso":
+            if not ISO_AVAILABLE:
+                raise PackerError("ISO wymaga modulu 'pycdlib'. Zainstaluj: pip install pycdlib")
+            _check_cancel(cancel_event)
+            try:
+                iso = pycdlib.PyCdlib()
+                iso.open(archive_path)
+                for i, entry in enumerate(files, 1):
+                    _check_cancel(cancel_event)
+                    try:
+                        target = safe_join(output_folder, entry["name"])
+                        target_exists = os.path.exists(target)
+                        if not overwrite and target_exists:
+                            result.skipped += 1
+                        else:
+                            iso.read_file(target, f'/{entry["name"]}')
+                            result.extracted += 1
+                            result.bytes_written += entry["size"]
+                            result.overwritten += 1 if (target_exists and overwrite) else 0
+                            report(i, total, entry["name"])
+                    except PackerError as ex:
+                        result.blocked.append(str(ex))
+                        emit(self.logger, "%s: %s" % (settings.t("error"), ex))
+                iso.close()
+            except Exception as ex:
+                raise PackerError(settings.t("archive_damaged").format(archive_path))
 
         emit(self.logger, settings.t("unpacked") + output_folder)
         return result
@@ -428,7 +617,7 @@ class UnpackerCore:
             with _lazy_pfa()(self.logger) as pfa:
                 return pfa.verify_pfa(archive_path, password=password,
                                       progress_cb=progress_cb)
-        if fmt in ("gz", "bz2", "xz"):
+        if fmt in ("gz", "bz2", "xz", "zst", "lz4", "br"):
             # Single-file compression formats - test by reading the entire file
             try:
                 opener = None
@@ -438,11 +627,62 @@ class UnpackerCore:
                     opener = bz2.open
                 elif fmt == "xz":
                     opener = lzma.open
-                with opener(archive_path, "rb") as f:
-                    while f.read(1024 * 256):
-                        pass
-                return True, "", 1
+                elif fmt == "zst":
+                    if not ZSTD_AVAILABLE:
+                        return False, "ZSTD wymaga modulu 'zstandard'. Zainstaluj: pip install zstandard", 0
+                    with open(archive_path, "rb") as f_in:
+                        dctx = zstd.ZstdDecompressor()
+                        with dctx.stream_reader(f_in) as reader:
+                            while reader.read(1024 * 256):
+                                pass
+                    return True, "", 1
+                elif fmt == "lz4":
+                    if not LZ4_AVAILABLE:
+                        return False, "LZ4 wymaga modulu 'lz4'. Zainstaluj: pip install lz4", 0
+                    with lz4.frame.open(archive_path, "rb") as f:
+                        while f.read(1024 * 256):
+                            pass
+                    return True, "", 1
+                elif fmt == "br":
+                    if not BROTLI_AVAILABLE:
+                        return False, "Brotli wymaga modulu 'brotli'. Zainstaluj: pip install brotli", 0
+                    with open(archive_path, "rb") as f:
+                        brotli.decompress(f.read())
+                    return True, "", 1
+                if opener:
+                    with opener(archive_path, "rb") as f:
+                        while f.read(1024 * 256):
+                            pass
+                    return True, "", 1
             except (OSError, EOFError) as ex:
+                return False, str(ex), 0
+        if fmt == "ar":
+            if not AR_AVAILABLE:
+                return False, "AR wymaga modulu 'arpy'. Zainstaluj: pip install arpy", 0
+            try:
+                with arpy.Archive(archive_path) as ar:
+                    ar.read_all_headers()
+                return True, "", 1
+            except Exception as ex:
+                return False, str(ex), 0
+        if fmt == "rar":
+            if not RAR_AVAILABLE:
+                return False, "RAR wymaga modulu 'rarfile'. Zainstaluj: pip install rarfile", 0
+            try:
+                with rarfile.RarFile(archive_path) as rf:
+                    rf.test()
+                return True, "", 1
+            except rarfile.BadRarFile as ex:
+                return False, str(ex), 0
+        if fmt == "iso":
+            if not ISO_AVAILABLE:
+                return False, "ISO wymaga modulu 'pycdlib'. Zainstaluj: pip install pycdlib", 0
+            try:
+                iso = pycdlib.PyCdlib()
+                iso.open(archive_path)
+                iso.close()
+                return True, "", 1
+            except Exception as ex:
                 return False, str(ex), 0
         return False, settings.t("unknown_format"), 0
 
