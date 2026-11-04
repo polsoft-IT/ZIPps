@@ -1,4 +1,4 @@
-"""ZIPps - pakowanie archiwow (ZIP, TAR+, gz/bz2/xz, 7z)."""
+"""ZIPps - pakowanie archiwow (ZIP, TAR+, gz/bz2/xz, 7z, zstd, lz4)."""
 import bz2
 import gzip
 import lzma
@@ -6,6 +6,31 @@ import os
 import shutil
 
 from dataclasses import dataclass, field
+
+# Nowe biblioteki kompresji
+try:
+    import zstandard as zstd
+    ZSTD_AVAILABLE = True
+except ImportError:
+    ZSTD_AVAILABLE = False
+
+try:
+    import lz4.frame
+    LZ4_AVAILABLE = True
+except ImportError:
+    LZ4_AVAILABLE = False
+
+try:
+    import brotli
+    BROTLI_AVAILABLE = True
+except ImportError:
+    BROTLI_AVAILABLE = False
+
+try:
+    import arpy
+    AR_AVAILABLE = True
+except ImportError:
+    AR_AVAILABLE = False
 
 def py7zr_module():
     """Modul py7zr ladowany przy uzyciu (opcjonalny)."""
@@ -17,6 +42,7 @@ from zipps_pkg.core import (
     PackerError, Empty, emit, human_size, _check_cancel, _make_progress,
     detect_format, ensure_archive_ext, iter_files, normalize_relative,
     open_tar, open_zip, FORMAT_EXTS, TAR_MODES, PY7ZR_AVAILABLE,
+    ZSTD_AVAILABLE, LZ4_AVAILABLE, BROTLI_AVAILABLE, AR_AVAILABLE,
 )
 from zipps_pkg.settings_mod import settings
 from zipps_pkg.logging_mod import Logger
@@ -132,6 +158,8 @@ class PackerCore:
         files = [os.path.abspath(f) for f in files if os.path.isfile(f)]
         if not files:
             raise PackerError(settings.t("no_files"))
+        if level is None:
+            level = 9
         queue = [(f, self.arcname_for(f, bases, keep_relative)) for f in files]
         os.makedirs(os.path.dirname(os.path.abspath(archive_path)) or ".", exist_ok=True)
         result = PackResult(path=archive_path)
@@ -186,7 +214,7 @@ class PackerCore:
         step = 0
         emit(self.logger, "TAR: " + archive_path)
 
-        with open_tar(archive_path, mode, fmt) as tf:
+        with open_tar(archive_path, mode, fmt, level) as tf:
             for path, arcname in queue:
                 _check_cancel(cancel_event)
                 step += 1
@@ -208,17 +236,63 @@ class PackerCore:
         emit(self.logger, settings.t("packed") + archive_path)
         return result
 
-    def pack_tar_gz(self, files, archive_path, progress_cb=None, **kwargs) -> PackResult:
+    def pack_tar_gz(self, files, archive_path, progress_cb=None, level=None, **kwargs) -> PackResult:
         return self.pack_tar(files, archive_path, mode="w:gz", fmt="targz",
-                             progress_cb=progress_cb, **kwargs)
+                             progress_cb=progress_cb, level=level, **kwargs)
 
-    def pack_tar_bz2(self, files, archive_path, progress_cb=None, **kwargs) -> PackResult:
+    def pack_tar_bz2(self, files, archive_path, progress_cb=None, level=None, **kwargs) -> PackResult:
         return self.pack_tar(files, archive_path, mode="w:bz2", fmt="tarbz2",
-                             progress_cb=progress_cb, **kwargs)
+                             progress_cb=progress_cb, level=level, **kwargs)
 
-    def pack_tar_xz(self, files, archive_path, progress_cb=None, **kwargs) -> PackResult:
+    def pack_tar_xz(self, files, archive_path, progress_cb=None, level=None, **kwargs) -> PackResult:
         return self.pack_tar(files, archive_path, mode="w:xz", fmt="tarxz",
-                             progress_cb=progress_cb, **kwargs)
+                             progress_cb=progress_cb, level=level, **kwargs)
+
+    def pack_tar_zst(self, files, archive_path, progress_cb=None, level=None,
+                     cancel_event=None, **kwargs) -> PackResult:
+        """Pakuje pliki do formatu .tar.zst (tar + zstd)."""
+        if not ZSTD_AVAILABLE:
+            raise PackerError("ZSTD wymaga modulu 'zstandard'. Zainstaluj: pip install zstandard")
+        return self.pack_tar(files, archive_path, mode="w|zstd", fmt="tarzst",
+                             progress_cb=progress_cb, level=level, cancel_event=cancel_event, **kwargs)
+
+    def pack_tar_lz4(self, files, archive_path, progress_cb=None, level=None,
+                     cancel_event=None, **kwargs) -> PackResult:
+        """Pakuje pliki do formatu .tar.lz4 (tar + lz4)."""
+        if not LZ4_AVAILABLE:
+            raise PackerError("LZ4 wymaga modulu 'lz4'. Zainstaluj: pip install lz4")
+        return self.pack_tar(files, archive_path, mode="w|lz4", fmt="tarlz4",
+                             progress_cb=progress_cb, level=level, cancel_event=cancel_event, **kwargs)
+
+    def pack_tar_br(self, files, archive_path, progress_cb=None, level=None,
+                    cancel_event=None, **kwargs) -> PackResult:
+        """Pakuje pliki do formatu .tar.br (tar + brotli)."""
+        if not BROTLI_AVAILABLE:
+            raise PackerError("Brotli wymaga modulu 'brotli'. Zainstaluj: pip install brotli")
+        # TAR + Brotli - najpierw pakujemy jako TAR, potem kompresujemy Brotli
+        temp_tar = archive_path.replace(".br", ".tar")
+        if archive_path.endswith(".tar.br"):
+            temp_tar = archive_path[:-3]
+        result = self.pack_tar(files, temp_tar, mode="w", fmt="tar",
+                               progress_cb=progress_cb, cancel_event=cancel_event, **kwargs)
+        _check_cancel(cancel_event)
+        try:
+            if level is None:
+                level = 11
+            level = max(0, min(11, int(level)))
+            with open(temp_tar, "rb") as f_in:
+                with open(archive_path, "wb") as f_out:
+                    compressor = brotli.Compressor(quality=level)
+                    for chunk in iter(lambda: f_in.read(1024 * 256), b""):
+                        f_out.write(compressor.compress(chunk))
+                    f_out.write(compressor.finish())
+            result.size_after = os.path.getsize(archive_path)
+            os.remove(temp_tar)
+        except Exception as ex:
+            if os.path.exists(temp_tar):
+                os.remove(temp_tar)
+            raise PackerError("TAR+Brotli pack failed: %s" % ex)
+        return result
 
     def pack_gz(self, files, archive_path, progress_cb=None, level=None,
                 cancel_event=None, **kwargs) -> PackResult:
@@ -234,7 +308,7 @@ class PackerCore:
         emit(self.logger, "GZIP: " + archive_path)
 
         if level is None:
-            level = 6
+            level = 9
         level = max(0, min(9, int(level)))
 
         _check_cancel(cancel_event)
@@ -304,7 +378,7 @@ class PackerCore:
         emit(self.logger, "XZ: " + archive_path)
 
         if level is None:
-            level = 6
+            level = 9
         level = max(0, min(9, int(level)))
 
         _check_cancel(cancel_event)
@@ -321,6 +395,167 @@ class PackerCore:
             result.skipped += 1
             result.errors.append("%s: %s" % (source, ex))
             emit(self.logger, "%s: %s" % (settings.t("error"), ex))
+
+        emit(self.logger, settings.t("packed") + archive_path)
+        return result
+
+    def pack_zst(self, files, archive_path, progress_cb=None, level=None,
+                 cancel_event=None, **kwargs) -> PackResult:
+        """Pakuje pojedynczy plik do formatu .zst (zstandard)."""
+        if not ZSTD_AVAILABLE:
+            raise PackerError("ZSTD wymaga modulu 'zstandard'. Zainstaluj: pip install zstandard")
+        files = [os.path.abspath(f) for f in files if os.path.isfile(f)]
+        if len(files) != 1:
+            raise PackerError("ZSTD supports only a single file")
+        source = files[0]
+        archive_path = ensure_archive_ext(archive_path, "zst")
+        os.makedirs(os.path.dirname(os.path.abspath(archive_path)) or ".", exist_ok=True)
+        result = PackResult(path=archive_path)
+        report = _make_progress(progress_cb)
+        emit(self.logger, "ZSTD: " + archive_path)
+
+        if level is None:
+            level = 19
+        level = max(1, min(22, int(level)))
+
+        _check_cancel(cancel_event)
+        try:
+            result.size_before = os.path.getsize(source)
+            cctx = zstd.ZstdCompressor(level=level)
+            with open(source, "rb") as f_in:
+                with open(archive_path, "wb") as f_out:
+                    with cctx.stream_writer(f_out) as compressor:
+                        shutil.copyfileobj(f_in, compressor, 1024 * 256)
+            result.added = 1
+            result.entries = 1
+            result.size_after = os.path.getsize(archive_path)
+            report(1, 1, source)
+        except OSError as ex:
+            result.skipped += 1
+            result.errors.append("%s: %s" % (source, ex))
+            emit(self.logger, "%s: %s" % (settings.t("error"), ex))
+
+        emit(self.logger, settings.t("packed") + archive_path)
+        return result
+
+    def pack_lz4(self, files, archive_path, progress_cb=None, level=None,
+                 cancel_event=None, **kwargs) -> PackResult:
+        """Pakuje pojedynczy plik do formatu .lz4."""
+        if not LZ4_AVAILABLE:
+            raise PackerError("LZ4 wymaga modulu 'lz4'. Zainstaluj: pip install lz4")
+        files = [os.path.abspath(f) for f in files if os.path.isfile(f)]
+        if len(files) != 1:
+            raise PackerError("LZ4 supports only a single file")
+        source = files[0]
+        archive_path = ensure_archive_ext(archive_path, "lz4")
+        os.makedirs(os.path.dirname(os.path.abspath(archive_path)) or ".", exist_ok=True)
+        result = PackResult(path=archive_path)
+        report = _make_progress(progress_cb)
+        emit(self.logger, "LZ4: " + archive_path)
+
+        if level is None:
+            level = 1
+        level = max(0, min(16, int(level)))
+
+        _check_cancel(cancel_event)
+        try:
+            result.size_before = os.path.getsize(source)
+            with open(source, "rb") as f_in:
+                with lz4.frame.open(archive_path, "wb", compression_level=level) as f_out:
+                    shutil.copyfileobj(f_in, f_out, 1024 * 256)
+            result.added = 1
+            result.entries = 1
+            result.size_after = os.path.getsize(archive_path)
+            report(1, 1, source)
+        except OSError as ex:
+            result.skipped += 1
+            result.errors.append("%s: %s" % (source, ex))
+            emit(self.logger, "%s: %s" % (settings.t("error"), ex))
+
+        emit(self.logger, settings.t("packed") + archive_path)
+        return result
+
+    def pack_br(self, files, archive_path, progress_cb=None, level=None,
+                cancel_event=None, **kwargs) -> PackResult:
+        """Pakuje pojedynczy plik do formatu .br (Brotli)."""
+        if not BROTLI_AVAILABLE:
+            raise PackerError("Brotli wymaga modulu 'brotli'. Zainstaluj: pip install brotli")
+        files = [os.path.abspath(f) for f in files if os.path.isfile(f)]
+        if len(files) != 1:
+            raise PackerError("Brotli supports only a single file")
+        source = files[0]
+        archive_path = ensure_archive_ext(archive_path, "br")
+        os.makedirs(os.path.dirname(os.path.abspath(archive_path)) or ".", exist_ok=True)
+        result = PackResult(path=archive_path)
+        report = _make_progress(progress_cb)
+        emit(self.logger, "Brotli: " + archive_path)
+
+        if level is None:
+            level = 11
+        level = max(0, min(11, int(level)))
+
+        _check_cancel(cancel_event)
+        try:
+            result.size_before = os.path.getsize(source)
+            with open(source, "rb") as f_in:
+                with open(archive_path, "wb") as f_out:
+                    compressor = brotli.Compressor(quality=level)
+                    for chunk in iter(lambda: f_in.read(1024 * 256), b""):
+                        f_out.write(compressor.compress(chunk))
+                    f_out.write(compressor.finish())
+            result.added = 1
+            result.entries = 1
+            result.size_after = os.path.getsize(archive_path)
+            report(1, 1, source)
+        except OSError as ex:
+            result.skipped += 1
+            result.errors.append("%s: %s" % (source, ex))
+            emit(self.logger, "%s: %s" % (settings.t("error"), ex))
+
+        emit(self.logger, settings.t("packed") + archive_path)
+        return result
+
+    def pack_ar(self, files, archive_path, progress_cb=None, bases=None,
+                keep_relative=True, cancel_event=None, **kwargs) -> PackResult:
+        """Pakuje pliki do formatu .ar (biblioteki statyczne)."""
+        if not AR_AVAILABLE:
+            raise PackerError("AR wymaga modulu 'arpy'. Zainstaluj: pip install arpy")
+        files = [os.path.abspath(f) for f in files if os.path.isfile(f)]
+        if not files:
+            raise PackerError(settings.t("no_files"))
+
+        archive_path = ensure_archive_ext(archive_path, "ar")
+        os.makedirs(os.path.dirname(os.path.abspath(archive_path)) or ".", exist_ok=True)
+        result = PackResult(path=archive_path)
+        report = _make_progress(progress_cb)
+        emit(self.logger, "AR: " + archive_path)
+
+        queue = [(f, self.arcname_for(f, bases, keep_relative)) for f in files]
+        total = len(queue)
+        step = 0
+
+        _check_cancel(cancel_event)
+        try:
+            with arpy.Archive(archive_path, 'w') as ar:
+                for path, arcname in queue:
+                    _check_cancel(cancel_event)
+                    step += 1
+                    try:
+                        size = os.path.getsize(path)
+                        result.size_before += size
+                        with open(path, 'rb') as f:
+                            ar.add_file(arcname.encode('utf-8'), f)
+                        result.added += 1
+                        report(step, total, arcname)
+                    except OSError as ex:
+                        result.skipped += 1
+                        result.errors.append("%s: %s" % (path, ex))
+                        emit(self.logger, "%s: %s" % (settings.t("error"), ex))
+
+            result.entries = result.added
+            result.size_after = os.path.getsize(archive_path)
+        except Exception as ex:
+            raise PackerError("AR pack failed: %s" % ex)
 
         emit(self.logger, settings.t("packed") + archive_path)
         return result
@@ -388,7 +623,7 @@ class PackerCore:
     # -- dyspozytor ---------------------------------------------------
     def pack(self, files, archive_path, fmt="zip", progress_cb=None,
              keywords=None, **kwargs) -> PackResult:
-        """Uniwersalna funkcja pakowania: fmt = zip|tar|targz|tarbz2|tarxz|gz|bz2|xz|7z|pfa."""
+        """Uniwersalna funkcja pakowania: fmt = zip|tar|targz|tarbz2|tarxz|tarzst|tarlz4|tarbr|gz|bz2|xz|zst|lz4|br|ar|7z|pfa."""
         if keywords is not None:
             keywords = set(keywords)
             kwargs = {k: v for k, v in kwargs.items() if k in keywords}
@@ -412,6 +647,20 @@ class PackerCore:
             return self.pack_bz2(files, archive_path, progress_cb=progress_cb, **kwargs)
         if fmt == "xz":
             return self.pack_xz(files, archive_path, progress_cb=progress_cb, **kwargs)
+        if fmt == "zst":
+            return self.pack_zst(files, archive_path, progress_cb=progress_cb, **kwargs)
+        if fmt == "lz4":
+            return self.pack_lz4(files, archive_path, progress_cb=progress_cb, **kwargs)
+        if fmt == "br":
+            return self.pack_br(files, archive_path, progress_cb=progress_cb, **kwargs)
+        if fmt == "ar":
+            return self.pack_ar(files, archive_path, progress_cb=progress_cb, **kwargs)
+        if fmt == "tarzst":
+            return self.pack_tar_zst(files, archive_path, progress_cb=progress_cb, **kwargs)
+        if fmt == "tarlz4":
+            return self.pack_tar_lz4(files, archive_path, progress_cb=progress_cb, **kwargs)
+        if fmt == "tarbr":
+            return self.pack_tar_br(files, archive_path, progress_cb=progress_cb, **kwargs)
         if fmt == "7z":
             return self.pack_7z(files, archive_path, progress_cb=progress_cb, **kwargs)
         if fmt == "pfa":
