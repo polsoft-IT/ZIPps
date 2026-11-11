@@ -9,7 +9,9 @@
 
 **Generator plików · Pakowanie · Szyfrowanie · Sumy kontrolne — w jednym pliku Pythona**
 
-`Wersja 2.0.0` · `Python 3` · `PySide6` · `GUI + CLI`
+`Wersja 2.7.0` · `Python 3` · `PySide6` · `GUI + CLI`
+
+<a href="../gallery.html">🖼️ Zobacz galerię</a> · <a href="https://github.com/polsoft-IT/ZIPps">⭐ GitHub</a>
 
 <img src="screenshot.png" alt="Zrzut ekranu ZIPps — Pro File Packer Enterprise" width="720"/>
 
@@ -21,7 +23,7 @@
 
 | Funkcja | ZIPps | Typowe narzędzia |
 |---|---|---|
-| 🗜️ Formaty ZIP / TAR / GZ / BZ2 / XZ **+ własny format PFA** | ✅ | zwykle tylko ZIP/TAR |
+| 🗜️ Formaty ZIP / TAR / GZ / BZ2 / XZ / ZST / LZ4 / BR **+ własny format PFA** | ✅ | zwykle tylko ZIP/TAR |
 | 🔐 ZIP z **AES-256** oraz własne szyfrowanie PFA | ✅ | często brak lub płatne |
 | 🛡️ Ochrona przed atakiem **Zip Slip** przy rozpakowywaniu | ✅ | rzadko spotykana |
 | 🧪 **11 algorytmów** sum kontrolnych (SHA-2, SHA-3, BLAKE2, CRC32…) | ✅ | zwykle 1–2 |
@@ -39,12 +41,40 @@ python ZIPps.py          # GUI
 python ZIPps.py --help   # CLI
 ```
 
+### Samodzielny EXE (Windows)
+
+Zbuduj przenośny plik wykonywalny bez zależności:
+
+```powershell
+cd .dev
+build.bat
+```
+
+Wynikowy `ZIPps.exe` znajdzie się w folderze `.dev\dist\`.
+
 ## 🧰 Archiwa i bezpieczeństwo
 
-- **Formaty:** ZIP, TAR, TAR.GZ, TAR.BZ2, TAR.XZ oraz autorski **PFA** (magia `PFA1`/`PFA2`)
+- **Formaty:** ZIP, TAR, TAR.GZ, TAR.BZ2, TAR.XZ, TAR.ZST, TAR.LZ4, TAR.BR, GZ, BZ2, XZ, ZST, LZ4, BR, AR, 7z, oraz autorski **PFA** (magia `PFA1`/`PFA2`)
 - **Szyfrowanie:** AES-256 dla ZIP, wbudowane szyfrowanie dla PFA
 - **Sumy kontrolne:** md5, sha1, sha224/256/384/512, sha3_256/512, blake2b, blake2s, crc32 — także dla całych katalogów, z porównaniem z oczekiwaną wartością
 - **Bezpieczeństwo:** walidacja ścieżek (Zip Slip), test integralności archiwów, rozmiary i daty plików
+
+### Opcjonalne zależności
+
+Niektóre formaty wymagają dodatkowych bibliotek:
+
+```powershell
+pip install cryptography zstandard lz4 brotli rarfile pycdlib arpy
+```
+
+- `cryptography` - do szyfrowania (AES-256 ZIP, szyfrowanie PFA)
+- `zstandard` - dla archiwów .zst i .tar.zst
+- `lz4` - dla archiwów .lz4 i .tar.lz4
+- `brotli` - dla archiwów .br i .tar.br
+- `rarfile` - dla archiwów .rar (tylko odczyt)
+- `pycdlib` - dla archiwów .iso (tylko odczyt)
+- `arpy` - dla archiwów .ar
+- `py7zr` - dla archiwów .7z (wymaga Visual C++ Build Tools na Windows)
 
 ## 🏭 Generator plików
 
@@ -62,6 +92,7 @@ Przykłady:
 python ZIPps.py pack . -f zip --password "tajne"
 python ZIPps.py hash plik.iso --compare <sha256>
 python ZIPps.py gen pyc --name modul
+python ZIPps.py unpack archive.tar.gz -d output/
 ```
 
 ## 🧪 Testy
@@ -72,6 +103,7 @@ python -m unittest discover -s tests -v
 
 ## 🗂️ Dokumentacja
 
+- [Galeria](../gallery.html) — wizualne prezentacja aplikacji
 - [Opis kompilatora/narzędzia (EN, ≤350 znaków)](opis.txt)
 - Zrzuty ekranu: `screenshot.png`, `app.png`, `file2.png`
 
@@ -79,13 +111,13 @@ python -m unittest discover -s tests -v
 
 <div align="center">
 
-**ZIPps** · Wersja 2.0.0 · Jeden plik · Wszystko na miejscu
+**ZIPps** · Wersja 2.7.0 · Jeden plik · Wszystko na miejscu
 
 ---
 
 [![Author](https://img.shields.io/badge/author-Sebastian_Januchowski-blue)]()
 [![Company](https://img.shields.io/badge/company-polsoft.ITS™-blueviolet)]()
 [![Email](https://img.shields.io/badge/email-polsoft.its@mail.com-red?logo=gmail&logoColor=white)](mailto:polsoft.its@mail.com)
-[![GitHub](https://img.shields.io/badge/GitHub-polsoft--it-black?logo=github)](https://github.com/polsoft-it)
+[![GitHub](https://img.shields.io/badge/GitHub-polsoft-IT-black?logo=github)](https://github.com/polsoft-IT/ZIPps)
 
 </div>
