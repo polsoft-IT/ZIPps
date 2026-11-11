@@ -1,6 +1,5 @@
 # Python
 __pycache__/
-.dev/
 *.py[cod]
 *$py.class
 *.so
@@ -37,3 +36,8 @@ htmlcov/
 # OS
 .DS_Store
 Thumbs.db
+
+# Development - keep build scripts, exclude artifacts
+.dev/dist/
+.dev/build/
+.dev/*.pyc
