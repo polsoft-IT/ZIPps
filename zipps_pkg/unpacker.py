@@ -60,7 +60,7 @@ from zipps_pkg.core import (
     PackerError, Empty, emit, human_size, _check_cancel, _make_progress,
     detect_format, normalize_relative, safe_join, open_tar, strip_archive_ext,
     _tar_extract_member, _zip_extract_entry, _uncompressed_size, _gzip_original_name,
-    TAR_MODES, PY7ZR_AVAILABLE, ZSTD_AVAILABLE, LZ4_AVAILABLE, BROTLI_AVAILABLE, AR_AVAILABLE,
+    TAR_MODES, PY7ZR_AVAILABLE,
 )
 from zipps_pkg.settings_mod import settings
 from zipps_pkg.logging_mod import Logger
