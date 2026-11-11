@@ -11,6 +11,8 @@
 
 `Version 2.7.0` · `Python 3` · `PySide6` · `GUI + CLI`
 
+[![Portable](https://img.shields.io/badge/portable-one--file%20exe-2EA44F?style=flat-square&logo=windows&logoColor=white)](https://github.com/polsoft-IT/ZIPps)
+
 <a href="../gallery.html">🖼️ View Gallery</a> · <a href="https://github.com/polsoft-IT/ZIPps">⭐ GitHub</a>
 
 <img src="screenshot.png" alt="ZIPps screenshot — Pro File Packer Enterprise" width="720"/>
