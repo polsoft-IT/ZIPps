@@ -17,7 +17,7 @@ One app for file generation, archive packing/unpacking, AES-256 encryption and 1
   <a href="#system-requirements"><img src="https://img.shields.io/badge/python-3.9%2B-3776AB?style=flat-square&logo=python&logoColor=white" alt="Python" /></a>
   <a href="#supported-languages"><img src="https://img.shields.io/badge/UI-English%20%7C%20Polski-107C10?style=flat-square" alt="Languages" /></a>
   <a href="#legal-notice"><img src="https://img.shields.io/badge/license-Proprietary-6E6E6E?style=flat-square" alt="License" /></a>
-  <a href="https://github.com/polsoft-it"><img src="https://img.shields.io/badge/publisher-polsoft.ITS%E2%84%A2-blueviolet?style=flat-square" alt="Publisher" /></a>
+  <a href="https://github.com/polsoft-IT"><img src="https://img.shields.io/badge/publisher-polsoft.ITS%E2%84%A2-blueviolet?style=flat-square" alt="Publisher" /></a>
 </p>
 
 <table align="center">
@@ -213,7 +213,7 @@ Copyright © Sebastian Januchowski. Published by **polsoft.ITS™**. The applica
 | **Age rating** | 3+ (no objectionable content) |
 | **Privacy policy** | Not applicable — the app collects no data and works fully offline |
 | **Support contact** | polsoft.its@mail.com |
-| **Support page** | https://github.com/polsoft-it |
+| **Support page** | https://github.com/polsoft-IT |
 
 ### Short description
 
@@ -261,7 +261,7 @@ Use the modern graphical interface for everyday tasks, or drive the same engine 
 | | |
 |---|---|
 | **Email** | [polsoft.its@mail.com](mailto:polsoft.its@mail.com) |
-| **GitHub** | [github.com/polsoft-it](https://github.com/polsoft-it) |
+| **GitHub** | [github.com/polsoft-IT](https://github.com/polsoft-IT) |
 
 When reporting an issue, please include the app version, your Windows version and the steps to reproduce the problem.
 
@@ -275,9 +275,9 @@ When reporting an issue, please include the app version, your Windows version an
 
 <p>
   <a href="#legal-notice"><img src="https://img.shields.io/badge/author-Sebastian_Januchowski-0078D4?style=flat-square" alt="Author" /></a>
-  <a href="https://github.com/polsoft-it"><img src="https://img.shields.io/badge/company-polsoft.ITS%E2%84%A2-blueviolet?style=flat-square" alt="Company" /></a>
+  <a href="https://github.com/polsoft-IT"><img src="https://img.shields.io/badge/company-polsoft.ITS%E2%84%A2-blueviolet?style=flat-square" alt="Company" /></a>
   <a href="mailto:polsoft.its@mail.com"><img src="https://img.shields.io/badge/email-polsoft.its%40mail.com-D13438?style=flat-square&logo=gmail&logoColor=white" alt="Email" /></a>
-  <a href="https://github.com/polsoft-it"><img src="https://img.shields.io/badge/GitHub-polsoft--it-181717?style=flat-square&logo=github" alt="GitHub" /></a>
+  <a href="https://github.com/polsoft-IT"><img src="https://img.shields.io/badge/GitHub-polsoft-IT-181717?style=flat-square&logo=github" alt="GitHub" /></a>
 </p>
 
 </div>
