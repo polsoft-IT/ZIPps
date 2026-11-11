@@ -10,6 +10,7 @@ One app for file generation, archive packing/unpacking, AES-256 encryption and 1
 
 <p>
   <a href="#release-notes"><img src="https://img.shields.io/badge/version-2.7.0-0078D4?style=flat-square" alt="Version" /></a>
+  <a href="#system-requirements"><img src="https://img.shields.io/badge/portable-one--file%20exe-2EA44F?style=flat-square&logo=windows&logoColor=white" alt="Portable" /></a>
   <a href="#system-requirements"><img src="https://img.shields.io/badge/platform-Windows%2010%20%7C%2011-0078D4?style=flat-square&logo=windows&logoColor=white" alt="Platform" /></a>
   <a href="#system-requirements"><img src="https://img.shields.io/badge/arch-x64-5C2D91?style=flat-square" alt="Architecture" /></a>
   <a href="#getting-started"><img src="https://img.shields.io/badge/GUI-PySide6-41CD52?style=flat-square&logo=qt&logoColor=white" alt="GUI" /></a>
