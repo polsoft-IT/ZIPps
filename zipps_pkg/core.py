@@ -99,9 +99,16 @@ FORMAT_EXTS = {
     "targz": ".tar.gz",
     "tarbz2": ".tar.bz2",
     "tarxz": ".tar.xz",
+    "tarzst": ".tar.zst",
+    "tarlz4": ".tar.lz4",
+    "tarbr": ".tar.br",
     "gz": ".gz",
     "bz2": ".bz2",
     "xz": ".xz",
+    "zst": ".zst",
+    "lz4": ".lz4",
+    "br": ".br",
+    "ar": ".ar",
     "7z": ".7z",
     "pfa": ".pfa",
 }
@@ -122,7 +129,7 @@ COMPRESS_MODES = {
 }
 
 #: dodatkowe, alternatywne rozszerzenia tych samych formatow (bez FORMAT_EXTS)
-ALTERNATE_EXTS = (".tgz", ".tbz2", ".tbz", ".txz")
+ALTERNATE_EXTS = (".tgz", ".tbz2", ".tbz", ".txz", ".tzst", ".tlz4")
 
 #: wszystkie rozszerzenia archiwow znane aplikacji (do filtra plikow i drag&drop)
 ALL_ARCHIVE_EXTS = tuple(sorted(set(FORMAT_EXTS.values()) | set(ALTERNATE_EXTS),
@@ -375,6 +382,24 @@ def detect_format(path: str) -> str:
             return "tarxz"
         return "xz"
 
+    # Zstandard (standalone .zst or .tar.zst)
+    if sig.startswith(b"\x28\xb5\x2f\xfd"):
+        low = path.lower()
+        if low.endswith((".tar.zst", ".tzst")):
+            return "tarzst"
+        return "zst"
+
+    # LZ4 frame format (standalone .lz4 or .tar.lz4)
+    if sig.startswith(b"\x04\x22\x4d\x18"):
+        low = path.lower()
+        if low.endswith((".tar.lz4", ".tlz4")):
+            return "tarlz4"
+        return "lz4"
+
+    # AR archive (Unix static library format)
+    if sig.startswith(b"!<arch>\n"):
+        return "ar"
+
     # Try to open as tar (plain tar files don't have a magic header)
     try:
         with tarfile.open(path, "r:"):
@@ -477,11 +502,14 @@ def open_zip(path: str, mode: str, password: str | None = None,
 
 
 @contextmanager
-def open_tar(path: str, mode: str, fmt: str = "tar"):
+def open_tar(path: str, mode: str, fmt: str = "tar", level: int | None = None):
     """Otwiera archiwum tar z odpowiednim trybem kompresji."""
     if mode.startswith("w") and fmt in TAR_MODES:
         mode = TAR_MODES[fmt]
-    with tarfile.open(path, mode) as tf:
+    kwargs = {}
+    if level is not None and mode in ("w:gz", "w:bz2"):
+        kwargs["compresslevel"] = max(0, min(9, int(level)))
+    with tarfile.open(path, mode, **kwargs) as tf:
         yield tf
 
 
