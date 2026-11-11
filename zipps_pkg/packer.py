@@ -42,7 +42,6 @@ from zipps_pkg.core import (
     PackerError, Empty, emit, human_size, _check_cancel, _make_progress,
     detect_format, ensure_archive_ext, iter_files, normalize_relative,
     open_tar, open_zip, FORMAT_EXTS, TAR_MODES, PY7ZR_AVAILABLE,
-    ZSTD_AVAILABLE, LZ4_AVAILABLE, BROTLI_AVAILABLE, AR_AVAILABLE,
 )
 from zipps_pkg.settings_mod import settings
 from zipps_pkg.logging_mod import Logger
