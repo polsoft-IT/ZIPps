@@ -118,6 +118,6 @@ python -m unittest discover -s tests -v
 [![Author](https://img.shields.io/badge/author-Sebastian_Januchowski-blue)]()
 [![Company](https://img.shields.io/badge/company-polsoft.ITS™-blueviolet)]()
 [![Email](https://img.shields.io/badge/email-polsoft.its@mail.com-red?logo=gmail&logoColor=white)](mailto:polsoft.its@mail.com)
-[![GitHub](https://img.shields.io/badge/GitHub-polsoft--it-black?logo=github)](https://github.com/polsoft-it)
+[![GitHub](https://img.shields.io/badge/GitHub-polsoft-IT-black?logo=github)](https://github.com/polsoft-IT/ZIPps)
 
 </div>
