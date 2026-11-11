@@ -15,7 +15,7 @@ One app for file generation, archive packing/unpacking, AES-256 encryption and 1
   <a href="#system-requirements"><img src="https://img.shields.io/badge/arch-x64-5C2D91?style=flat-square" alt="Architecture" /></a>
   <a href="#getting-started"><img src="https://img.shields.io/badge/GUI-PySide6-41CD52?style=flat-square&logo=qt&logoColor=white" alt="GUI" /></a>
   <a href="#command-line-reference"><img src="https://img.shields.io/badge/CLI-supported-2B579A?style=flat-square&logo=windowsterminal&logoColor=white" alt="CLI" /></a>
-  <a href="#system-requirements"><img src="https://img.shields.io/badge/python-3.9%2B-3776AB?style=flat-square&logo=python&logoColor=white" alt="Python" /></a>
+  <a href="#system-requirements"><img src="https://img.shields.io/badge/offline-no%20internet%20required-2EA44F?style=flat-square&logo=offline&logoColor=white" alt="Offline" /></a>
   <a href="#supported-languages"><img src="https://img.shields.io/badge/UI-English%20%7C%20Polski-107C10?style=flat-square" alt="Languages" /></a>
   <a href="#legal-notice"><img src="https://img.shields.io/badge/license-Proprietary-6E6E6E?style=flat-square" alt="License" /></a>
   <a href="https://github.com/polsoft-IT"><img src="https://img.shields.io/badge/publisher-polsoft.ITS%E2%84%A2-blueviolet?style=flat-square" alt="Publisher" /></a>
@@ -93,7 +93,7 @@ It offers a modern graphical interface for everyday use and a full command-line 
 | **Runtime** | None — the required runtime is bundled in `ZIPps.exe` |
 | **Connectivity** | Not required — the app works fully offline |
 
-> Additional archive formats (7z, RAR, ISO) are available when the corresponding optional Python packages are present in the environment; the Windows build bundles them where applicable.
+> Additional archive formats (7z, RAR, ISO, ZST, LZ4, BR) are supported where the corresponding compression libraries are bundled in the executable build.
 
 ## Getting started
 
@@ -250,7 +250,7 @@ Use the modern graphical interface for everyday tasks, or drive the same engine 
 
 ### What's new in 2.7.0
 
-- Modular engine (`zipps_pkg`) with a thin `ZIPps.py` entry point
+- Modular engine (`zipps_pkg`) bundled into a single `ZIPps.exe`
 - Additional compression formats: ZST, LZ4, BR (TAR variants and single-stream)
 - 7z, AR, ISO and RAR listing/extraction support
 - Expanded archive inspection and integrity testing
