@@ -2445,6 +2445,36 @@ if QT_AVAILABLE:
                     self.log(settings.t("error") + ": " + settings.t("no_files"))
                     return
                 fmt = self.pack_format_combo.currentData()
+                # Single-file formats cannot pack multiple files
+                single_file_fmts = ("gz", "bz2", "xz", "zst", "lz4", "br")
+                if fmt in single_file_fmts and len(self.pack_items) > 1:
+                    tar_equivalent = {
+                        "gz": "targz", "bz2": "tarbz2", "xz": "tarxz",
+                        "zst": "tarzst", "lz4": "tarlz4", "br": "tarbr"
+                    }.get(fmt)
+                    if tar_equivalent:
+                        self.log("%s: %s (auto-switched to %s)" % (
+                            settings.t("error"),
+                            settings.t("single_file_only", fmt.upper()),
+                            tar_equivalent.upper()
+                        ))
+                        self.pack_format_combo.setCurrentIndex(
+                            max(0, self.pack_format_combo.findData(tar_equivalent))
+                        )
+                        fmt = tar_equivalent
+                        # Update archive extension
+                        archive_path = self.pack_archive_edit.text().strip()
+                        if archive_path:
+                            # Strip old extension and add new one
+                            for ext in (".gz", ".bz2", ".xz", ".zst", ".lz4", ".br"):
+                                if archive_path.lower().endswith(ext):
+                                    archive_path = archive_path[:-len(ext)]
+                                    break
+                            archive_path = ensure_archive_ext(archive_path, fmt)
+                            self.pack_archive_edit.setText(archive_path)
+                    else:
+                        self.log(settings.t("error") + ": " + settings.t("single_file_only", fmt.upper()))
+                        return
                 archive_path = self.pack_archive_edit.text().strip()
                 if not archive_path:
                     self.auto_suggest_archive(force=True)
